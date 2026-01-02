@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const jsonPromptEditorEl = document.getElementById('jsonPromptEditor');
     const jsonPromptError = document.getElementById('jsonPromptError');
     const saveJsonPrompt = document.getElementById('saveJsonPrompt');
+    const formatJsonPrompt = document.getElementById('formatJsonPrompt');
     const addJsonButton = document.getElementById('addJsonButton');
 
     let ajv = null;
@@ -176,6 +177,24 @@ document.addEventListener('DOMContentLoaded', function() {
     if (addJsonButton) {
         addJsonButton.addEventListener('click', () => {
             setJsonPromptValidity(false, 'JSON is required.');
+        });
+    }
+
+    // Format JSON button
+    if (formatJsonPrompt && jsonEditor) {
+        formatJsonPrompt.addEventListener('click', () => {
+            const value = jsonEditor.getValue().trim();
+            if (!value) {
+                return;
+            }
+            try {
+                const parsed = JSON.parse(value);
+                const formatted = JSON.stringify(parsed, null, 2);
+                jsonEditor.setValue(formatted);
+            } catch (error) {
+                // JSON is invalid, validation will show the error
+                validateJsonPrompt();
+            }
         });
     }
 });
