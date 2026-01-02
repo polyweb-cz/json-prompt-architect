@@ -76,62 +76,80 @@
         </nav>
         
         <!-- Content -->
-        <div class="container mt-4">
-            <h1 class="mb-4">JSON Prompt Architect</h1>
-            
-            <div class="row">
-                <div class="col-12">
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="mb-0">Form Example</h5>
+        <div class="container-fluid mt-3">
+            <!-- Tab Navigation -->
+            <ul class="nav nav-tabs" id="modeTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="edit-tab" data-bs-toggle="tab" data-bs-target="#edit-mode" type="button" role="tab" aria-controls="edit-mode" aria-selected="true">
+                        EDIT MODE
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="use-tab" data-bs-toggle="tab" data-bs-target="#use-mode" type="button" role="tab" aria-controls="use-mode" aria-selected="false">
+                        USE MODE
+                    </button>
+                </li>
+                <li class="nav-item ms-auto">
+                    <button class="btn btn-outline-secondary btn-sm" id="showMasterJsonBtn" type="button" data-bs-toggle="modal" data-bs-target="#masterJsonModal">
+                        Show Master JSON
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="modeTabsContent">
+                <!-- EDIT MODE -->
+                <div class="tab-pane fade show active" id="edit-mode" role="tabpanel" aria-labelledby="edit-tab">
+                    <div class="edit-mode-container py-3">
+                        <!-- Visual editor blocks will be rendered here -->
+                        <div id="jsonBlocksContainer">
+                            <!-- Empty state with add buttons -->
+                            <div class="empty-state text-center py-5" id="emptyState">
+                                <p class="text-muted mb-3">Start building your JSON structure</p>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <form>
-                                <!-- Input field -->
-                                <div class="mb-3">
-                                    <label for="textInput" class="form-label">Text Field</label>
-                                    <input type="text" class="form-control" id="textInput" placeholder="Enter text">
-                                    <div class="form-text">Example text input</div>
+
+                        <!-- Add buttons (always at the bottom of root level) -->
+                        <div class="block-actions d-flex gap-2 mt-3" id="rootBlockActions">
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="addKeyValueBtn">
+                                + Add Key/Value
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="addSectionBtn">
+                                + Add Section
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- USE MODE -->
+                <div class="tab-pane fade" id="use-mode" role="tabpanel" aria-labelledby="use-tab">
+                    <div class="use-mode-container py-3">
+                        <div class="row">
+                            <!-- Form -->
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Fill Values</h6>
+                                    </div>
+                                    <div class="card-body" id="useFormContainer">
+                                        <p class="text-muted">No JSON structure defined. Go to EDIT MODE to create one.</p>
+                                    </div>
                                 </div>
-                                
-                                <!-- Select field -->
-                                <div class="mb-3">
-                                    <label for="basicSelect" class="form-label">Basic Select</label>
-                                    <select class="form-select" id="basicSelect">
-                                        <option value="">Choose an option</option>
-                                        <option value="1">Option 1</option>
-                                        <option value="2">Option 2</option>
-                                        <option value="3">Option 3</option>
-                                    </select>
+                            </div>
+                            <!-- JSON Preview -->
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0">Output JSON</h6>
+                                        <button type="button" class="btn btn-outline-primary btn-sm" id="copyJsonBtn">
+                                            Copy JSON
+                                        </button>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="jsonOutputPreview"></div>
+                                    </div>
                                 </div>
-                                
-                                <!-- Choices.js Select -->
-                                <div class="mb-3">
-                                    <label for="choicesSelect" class="form-label">Advanced Select (Choices.js)</label>
-                                    <select class="form-select" id="choicesSelect" multiple>
-                                        <option value="javascript">JavaScript</option>
-                                        <option value="python">Python</option>
-                                        <option value="java">Java</option>
-                                        <option value="csharp">C#</option>
-                                        <option value="php">PHP</option>
-                                    </select>
-                                    <div class="form-text">Multiple selection with search</div>
-                                </div>
-                                
-                                <!-- Textarea -->
-                                <div class="mb-3">
-                                    <label for="textareaInput" class="form-label">Text Area</label>
-                                    <textarea class="form-control" id="textareaInput" rows="3" placeholder="Enter longer text"></textarea>
-                                </div>
-                                
-                                <!-- Buttons -->
-                                <div class="d-flex gap-2">
-                                    <button type="submit" class="btn btn-primary">Submit</button>
-                                    <button type="reset" class="btn btn-secondary">Reset</button>
-                                    <button type="button" class="btn btn-outline-info">Info</button>
-                                    <button type="button" class="btn btn-outline-warning">Warning</button>
-                                </div>
-                            </form>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -163,7 +181,26 @@
             </div>
         </div>
     </div>
-    
+
+    <!-- Master JSON Preview Modal -->
+    <div class="modal fade" id="masterJsonModal" tabindex="-1" aria-labelledby="masterJsonModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="masterJsonModalLabel">Master JSON (Schema)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="masterJsonPreview"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-primary" id="copyMasterJsonBtn">Copy</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
     <footer class="py-3">
         <div class="container">

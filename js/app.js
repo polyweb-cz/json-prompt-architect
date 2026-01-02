@@ -1,20 +1,434 @@
-// Initialize Choices.js on the select element
+// JSON Prompt Architect - Main Application
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Choices.js with error handling
-    try {
-        const choicesElement = document.getElementById('choicesSelect');
-        if (choicesElement && typeof Choices !== 'undefined') {
-            const choicesSelect = new Choices('#choicesSelect', {
-                removeItemButton: true,
-                searchEnabled: true,
-                placeholder: true,
-                placeholderValue: 'Select programming languages'
+
+    // ===== MASTER JSON STATE =====
+    let masterJson = { fields: [] };
+
+    // ===== UTILITY FUNCTIONS =====
+    function generateId() {
+        return 'field_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    // ===== DOM ELEMENTS =====
+    const jsonBlocksContainer = document.getElementById('jsonBlocksContainer');
+    const emptyState = document.getElementById('emptyState');
+    const addKeyValueBtn = document.getElementById('addKeyValueBtn');
+    const addSectionBtn = document.getElementById('addSectionBtn');
+    const showMasterJsonBtn = document.getElementById('showMasterJsonBtn');
+    const masterJsonModal = document.getElementById('masterJsonModal');
+    const masterJsonPreviewEl = document.getElementById('masterJsonPreview');
+    const copyMasterJsonBtn = document.getElementById('copyMasterJsonBtn');
+    const useFormContainer = document.getElementById('useFormContainer');
+    const jsonOutputPreviewEl = document.getElementById('jsonOutputPreview');
+    const copyJsonBtn = document.getElementById('copyJsonBtn');
+
+    let masterJsonEditor = null;
+    let outputJsonEditor = null;
+
+    // Initialize CodeMirror for Master JSON Preview
+    if (masterJsonPreviewEl && typeof CodeMirror !== 'undefined') {
+        masterJsonEditor = CodeMirror(masterJsonPreviewEl, {
+            mode: { name: 'javascript', json: true },
+            lineNumbers: true,
+            readOnly: true,
+            lineWrapping: true,
+            tabSize: 2
+        });
+    }
+
+    // Initialize CodeMirror for Output JSON Preview
+    if (jsonOutputPreviewEl && typeof CodeMirror !== 'undefined') {
+        outputJsonEditor = CodeMirror(jsonOutputPreviewEl, {
+            mode: { name: 'javascript', json: true },
+            lineNumbers: true,
+            readOnly: true,
+            lineWrapping: true,
+            tabSize: 2
+        });
+    }
+
+    // ===== CONVERT PLAIN JSON TO MASTER JSON =====
+    function convertToMasterJson(obj, parentPath = '') {
+        const fields = [];
+
+        for (const [key, value] of Object.entries(obj)) {
+            const id = generateId();
+
+            if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+                // It's a nested object - create section
+                fields.push({
+                    id: id,
+                    type: 'section',
+                    key: key,
+                    children: convertToMasterJson(value, parentPath + key + '.')
+                });
+            } else {
+                // Primitive value or array - create text field
+                let defaultValue = value;
+                if (Array.isArray(value)) {
+                    defaultValue = JSON.stringify(value);
+                } else if (typeof value !== 'string') {
+                    defaultValue = String(value);
+                }
+
+                fields.push({
+                    id: id,
+                    type: 'text',
+                    key: key,
+                    defaultValue: defaultValue,
+                    validation: {}
+                });
+            }
+        }
+
+        return fields;
+    }
+
+    // ===== RENDER EDIT MODE =====
+    function renderEditMode() {
+        // Clear container (except empty state)
+        const blocks = jsonBlocksContainer.querySelectorAll('.json-block, .json-section');
+        blocks.forEach(block => block.remove());
+
+        // Render fields
+        masterJson.fields.forEach(field => {
+            const element = createBlockElement(field);
+            jsonBlocksContainer.insertBefore(element, emptyState);
+        });
+
+        // Update empty state visibility
+        updateEmptyState();
+    }
+
+    function createBlockElement(field) {
+        if (field.type === 'section') {
+            return createSectionElement(field);
+        } else {
+            return createKeyValueElement(field);
+        }
+    }
+
+    function createKeyValueElement(field) {
+        const div = document.createElement('div');
+        div.className = 'json-block';
+        div.dataset.id = field.id;
+        div.dataset.type = 'keyvalue';
+
+        div.innerHTML = `
+            <input type="text" class="form-control form-control-sm block-key" placeholder="Key" value="${escapeHtml(field.key || '')}">
+            <select class="form-select form-select-sm block-type">
+                <option value="text" ${field.type === 'text' ? 'selected' : ''}>Text</option>
+            </select>
+            <input type="text" class="form-control form-control-sm block-value" placeholder="Default value" value="${escapeHtml(field.defaultValue || '')}">
+            <button type="button" class="btn-delete" title="Delete">&times;</button>
+        `;
+
+        // Event listeners
+        div.querySelector('.block-key').addEventListener('input', (e) => {
+            updateFieldInMasterJson(field.id, 'key', e.target.value);
+            validateDuplicateKeys();
+        });
+
+        div.querySelector('.block-type').addEventListener('change', (e) => {
+            updateFieldInMasterJson(field.id, 'type', e.target.value);
+        });
+
+        div.querySelector('.block-value').addEventListener('input', (e) => {
+            updateFieldInMasterJson(field.id, 'defaultValue', e.target.value);
+        });
+
+        div.querySelector('.btn-delete').addEventListener('click', () => {
+            removeFieldFromMasterJson(field.id);
+            div.remove();
+            updateEmptyState();
+        });
+
+        return div;
+    }
+
+    function createSectionElement(field) {
+        const div = document.createElement('div');
+        div.className = 'json-section';
+        div.dataset.id = field.id;
+        div.dataset.type = 'section';
+
+        div.innerHTML = `
+            <div class="section-header">
+                <input type="text" class="form-control form-control-sm section-name" placeholder="Section name" value="${escapeHtml(field.key || '')}">
+                <button type="button" class="btn-delete" title="Delete section">&times;</button>
+            </div>
+            <div class="section-children"></div>
+            <div class="block-actions d-flex gap-2 mt-2">
+                <button type="button" class="btn btn-outline-primary btn-sm add-child-keyvalue">+ Add Key/Value</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm add-child-section">+ Add Section</button>
+            </div>
+        `;
+
+        const childrenContainer = div.querySelector('.section-children');
+
+        // Render children
+        if (field.children && field.children.length > 0) {
+            field.children.forEach(child => {
+                const childElement = createBlockElement(child);
+                childrenContainer.appendChild(childElement);
             });
         }
-    } catch (error) {
-        console.error('Failed to initialize Choices.js:', error);
+
+        // Event listeners
+        div.querySelector('.section-name').addEventListener('input', (e) => {
+            updateFieldInMasterJson(field.id, 'key', e.target.value);
+            validateDuplicateKeys();
+        });
+
+        div.querySelector('.btn-delete').addEventListener('click', () => {
+            removeFieldFromMasterJson(field.id);
+            div.remove();
+            updateEmptyState();
+        });
+
+        div.querySelector('.add-child-keyvalue').addEventListener('click', () => {
+            const newField = { id: generateId(), type: 'text', key: '', defaultValue: '', validation: {} };
+            addChildToSection(field.id, newField);
+            const newElement = createKeyValueElement(newField);
+            childrenContainer.appendChild(newElement);
+        });
+
+        div.querySelector('.add-child-section').addEventListener('click', () => {
+            const newField = { id: generateId(), type: 'section', key: '', children: [] };
+            addChildToSection(field.id, newField);
+            const newElement = createSectionElement(newField);
+            childrenContainer.appendChild(newElement);
+        });
+
+        return div;
     }
-    
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function updateEmptyState() {
+        if (emptyState) {
+            const hasBlocks = masterJson.fields.length > 0;
+            emptyState.style.display = hasBlocks ? 'none' : 'block';
+        }
+    }
+
+    // ===== MASTER JSON MANIPULATION =====
+    function findFieldById(fields, id) {
+        for (const field of fields) {
+            if (field.id === id) {
+                return { field, parent: fields };
+            }
+            if (field.children) {
+                const result = findFieldById(field.children, id);
+                if (result) return result;
+            }
+        }
+        return null;
+    }
+
+    function updateFieldInMasterJson(id, property, value) {
+        const result = findFieldById(masterJson.fields, id);
+        if (result) {
+            result.field[property] = value;
+        }
+    }
+
+    function removeFieldFromMasterJson(id) {
+        const result = findFieldById(masterJson.fields, id);
+        if (result) {
+            const index = result.parent.indexOf(result.field);
+            if (index > -1) {
+                result.parent.splice(index, 1);
+            }
+        }
+    }
+
+    function addChildToSection(sectionId, newField) {
+        const result = findFieldById(masterJson.fields, sectionId);
+        if (result && result.field.type === 'section') {
+            if (!result.field.children) {
+                result.field.children = [];
+            }
+            result.field.children.push(newField);
+        }
+    }
+
+    // ===== VALIDATION =====
+    function validateDuplicateKeys() {
+        // Simple validation - mark duplicates
+        const allBlocks = jsonBlocksContainer.querySelectorAll('.json-block, .json-section');
+        const keyMap = new Map();
+
+        allBlocks.forEach(block => {
+            const keyInput = block.querySelector('.block-key, .section-name');
+            if (keyInput) {
+                const key = keyInput.value.trim();
+                if (key) {
+                    // Get parent for scope
+                    const parent = block.parentElement;
+                    const scope = parent.dataset.id || 'root';
+                    const scopeKey = scope + '::' + key;
+
+                    if (keyMap.has(scopeKey)) {
+                        block.classList.add('is-invalid');
+                        keyMap.get(scopeKey).classList.add('is-invalid');
+                    } else {
+                        keyMap.set(scopeKey, block);
+                        block.classList.remove('is-invalid');
+                    }
+                } else {
+                    block.classList.remove('is-invalid');
+                }
+            }
+        });
+    }
+
+    // ===== ROOT LEVEL ADD BUTTONS =====
+    if (addKeyValueBtn) {
+        addKeyValueBtn.addEventListener('click', () => {
+            const newField = { id: generateId(), type: 'text', key: '', defaultValue: '', validation: {} };
+            masterJson.fields.push(newField);
+            const element = createKeyValueElement(newField);
+            jsonBlocksContainer.insertBefore(element, emptyState);
+            updateEmptyState();
+            element.querySelector('.block-key').focus();
+        });
+    }
+
+    if (addSectionBtn) {
+        addSectionBtn.addEventListener('click', () => {
+            const newField = { id: generateId(), type: 'section', key: '', children: [] };
+            masterJson.fields.push(newField);
+            const element = createSectionElement(newField);
+            jsonBlocksContainer.insertBefore(element, emptyState);
+            updateEmptyState();
+            element.querySelector('.section-name').focus();
+        });
+    }
+
+    // ===== MASTER JSON PREVIEW =====
+    if (masterJsonModal && masterJsonEditor) {
+        masterJsonModal.addEventListener('shown.bs.modal', () => {
+            masterJsonEditor.setValue(JSON.stringify(masterJson, null, 2));
+            masterJsonEditor.refresh();
+        });
+    }
+
+    if (copyMasterJsonBtn) {
+        copyMasterJsonBtn.addEventListener('click', () => {
+            const jsonStr = JSON.stringify(masterJson, null, 2);
+            navigator.clipboard.writeText(jsonStr).then(() => {
+                copyMasterJsonBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyMasterJsonBtn.textContent = 'Copy';
+                }, 2000);
+            });
+        });
+    }
+
+    // ===== USE MODE =====
+    function renderUseMode() {
+        if (!useFormContainer) return;
+
+        if (masterJson.fields.length === 0) {
+            useFormContainer.innerHTML = '<p class="text-muted">No JSON structure defined. Go to EDIT MODE to create one.</p>';
+            if (outputJsonEditor) {
+                outputJsonEditor.setValue('{}');
+            }
+            return;
+        }
+
+        useFormContainer.innerHTML = '';
+        renderUseFields(masterJson.fields, useFormContainer);
+        updateOutputJson();
+    }
+
+    function renderUseFields(fields, container) {
+        fields.forEach(field => {
+            if (field.type === 'section') {
+                const section = document.createElement('div');
+                section.className = 'card mb-3';
+                section.innerHTML = `
+                    <div class="card-header py-2">
+                        <strong>${escapeHtml(field.key || 'Unnamed Section')}</strong>
+                    </div>
+                    <div class="card-body py-2"></div>
+                `;
+                const body = section.querySelector('.card-body');
+                if (field.children && field.children.length > 0) {
+                    renderUseFields(field.children, body);
+                }
+                container.appendChild(section);
+            } else {
+                const formGroup = document.createElement('div');
+                formGroup.className = 'mb-2';
+                formGroup.innerHTML = `
+                    <label class="form-label small mb-1">${escapeHtml(field.key || 'Unnamed')}</label>
+                    <input type="text" class="form-control form-control-sm use-field" data-id="${field.id}" value="${escapeHtml(field.defaultValue || '')}">
+                `;
+                formGroup.querySelector('.use-field').addEventListener('input', updateOutputJson);
+                container.appendChild(formGroup);
+            }
+        });
+    }
+
+    function updateOutputJson() {
+        const output = buildFinalJson(masterJson.fields);
+        if (outputJsonEditor) {
+            outputJsonEditor.setValue(JSON.stringify(output, null, 2));
+        }
+    }
+
+    function buildFinalJson(fields) {
+        const result = {};
+
+        fields.forEach(field => {
+            if (field.type === 'section') {
+                if (field.key) {
+                    result[field.key] = buildFinalJson(field.children || []);
+                }
+            } else {
+                if (field.key) {
+                    // Get current value from USE form input
+                    const input = document.querySelector(`.use-field[data-id="${field.id}"]`);
+                    const value = input ? input.value : field.defaultValue;
+                    result[field.key] = value;
+                }
+            }
+        });
+
+        return result;
+    }
+
+    // Copy output JSON
+    if (copyJsonBtn && outputJsonEditor) {
+        copyJsonBtn.addEventListener('click', () => {
+            const jsonStr = outputJsonEditor.getValue();
+            navigator.clipboard.writeText(jsonStr).then(() => {
+                copyJsonBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyJsonBtn.textContent = 'Copy JSON';
+                }, 2000);
+            });
+        });
+    }
+
+    // ===== TAB SWITCHING =====
+    const useTab = document.getElementById('use-tab');
+    if (useTab) {
+        useTab.addEventListener('shown.bs.tab', () => {
+            renderUseMode();
+            if (outputJsonEditor) {
+                outputJsonEditor.refresh();
+            }
+        });
+    }
+
+    // ===== SIDEBAR TOGGLE =====
     // Sidebar toggle functionality
     const menuToggle = document.getElementById('menuToggle');
     const sidebar = document.getElementById('sidebar');
@@ -167,6 +581,24 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!validateJsonPrompt()) {
                 return;
             }
+
+            // Convert imported JSON to Master JSON and render
+            try {
+                const value = jsonEditor.getValue().trim();
+                const parsed = JSON.parse(value);
+                masterJson.fields = convertToMasterJson(parsed);
+                renderEditMode();
+
+                // Switch to EDIT tab
+                const editTab = document.getElementById('edit-tab');
+                if (editTab) {
+                    const tab = new bootstrap.Tab(editTab);
+                    tab.show();
+                }
+            } catch (error) {
+                console.error('Failed to convert JSON:', error);
+            }
+
             const modalInstance = bootstrap.Modal.getInstance(jsonPromptModal) || new bootstrap.Modal(jsonPromptModal);
             modalInstance.hide();
         });

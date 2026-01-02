@@ -73,3 +73,142 @@ footer {
     min-width: 25px;
     color: #999;
 }
+
+/* Master JSON Preview */
+#masterJsonPreview .CodeMirror {
+    height: 400px;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    font-size: 13px;
+}
+
+/* JSON Output Preview in USE MODE */
+#jsonOutputPreview .CodeMirror {
+    height: 300px;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    font-size: 13px;
+}
+
+/* ===== EDIT MODE - Visual Editor ===== */
+.edit-mode-container {
+    max-width: 900px;
+}
+
+/* JSON Block - Key/Value */
+.json-block {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    transition: border-color 0.15s ease-in-out;
+}
+
+.json-block:hover {
+    border-color: #adb5bd;
+}
+
+.json-block.is-invalid {
+    border-color: #dc3545;
+    background-color: #fff5f5;
+}
+
+.json-block .block-key {
+    flex: 0 0 200px;
+    font-weight: 500;
+}
+
+.json-block .block-type {
+    flex: 0 0 100px;
+}
+
+.json-block .block-value {
+    flex: 1;
+}
+
+.json-block .btn-delete {
+    flex: 0 0 auto;
+    padding: 0.25rem 0.5rem;
+    font-size: 1.2rem;
+    line-height: 1;
+    color: #dc3545;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+.json-block .btn-delete:hover {
+    opacity: 1;
+}
+
+/* JSON Section Block */
+.json-section {
+    margin-bottom: 0.75rem;
+    padding: 0.75rem;
+    background-color: #fff;
+    border: 2px solid #0d6efd;
+    border-radius: 0.5rem;
+}
+
+.json-section .section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.json-section .section-name {
+    flex: 1;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.json-section .section-children {
+    padding-left: 1rem;
+    border-left: 2px solid #e9ecef;
+}
+
+.json-section .section-children .block-actions {
+    margin-top: 0.5rem;
+}
+
+/* Nested sections - alternating colors */
+.json-section .json-section {
+    border-color: #6c757d;
+}
+
+.json-section .json-section .json-section {
+    border-color: #20c997;
+}
+
+.json-section .json-section .json-section .json-section {
+    border-color: #fd7e14;
+}
+
+/* Empty state */
+.empty-state {
+    color: #6c757d;
+}
+
+/* Block actions */
+.block-actions .btn {
+    font-size: 0.875rem;
+}
+
+/* Tab styling */
+#modeTabs .nav-link {
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#modeTabs .nav-link.active {
+    font-weight: 600;
+}
