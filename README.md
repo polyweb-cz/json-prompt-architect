@@ -1,5 +1,8 @@
 # json-prompt-architect
 JSON Prompt Architect
 
-## Contributors
+## Use agents
 - codex
+- copilot
+- claude
+- gemini
