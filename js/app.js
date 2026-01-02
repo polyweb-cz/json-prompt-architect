@@ -35,24 +35,41 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const jsonPromptModal = document.getElementById('jsonPromptModal');
-    const jsonPromptInput = document.getElementById('jsonPromptInput');
+    const jsonPromptEditorEl = document.getElementById('jsonPromptEditor');
     const jsonPromptError = document.getElementById('jsonPromptError');
     const saveJsonPrompt = document.getElementById('saveJsonPrompt');
     const addJsonButton = document.getElementById('addJsonButton');
 
     let ajv = null;
     let schemaValidator = null;
+    let jsonEditor = null;
 
     if (typeof Ajv !== 'undefined') {
         ajv = new Ajv({ allErrors: true, strict: false });
         schemaValidator = ajv.compile(true);
     }
 
+    // Initialize CodeMirror
+    if (jsonPromptEditorEl && typeof CodeMirror !== 'undefined') {
+        jsonEditor = CodeMirror(jsonPromptEditorEl, {
+            mode: { name: 'javascript', json: true },
+            lineNumbers: true,
+            lineWrapping: true,
+            tabSize: 2,
+            indentWithTabs: false
+        });
+
+        jsonEditor.on('change', function() {
+            validateJsonPrompt();
+        });
+    }
+
     function setJsonPromptValidity(isValid, message) {
-        if (!jsonPromptInput || !jsonPromptError || !saveJsonPrompt) {
+        if (!jsonEditor || !jsonPromptError || !saveJsonPrompt) {
             return;
         }
-        jsonPromptInput.classList.toggle('is-invalid', !isValid);
+        const cmElement = jsonEditor.getWrapperElement();
+        cmElement.classList.toggle('cm-invalid', !isValid);
         jsonPromptError.classList.toggle('d-none', isValid);
         if (!isValid) {
             jsonPromptError.textContent = message || 'Invalid JSON.';
@@ -60,12 +77,55 @@ document.addEventListener('DOMContentLoaded', function() {
         saveJsonPrompt.disabled = !isValid;
     }
 
+    function getLineFromPosition(text, position) {
+        if (position < 0 || position > text.length) {
+            return null;
+        }
+        let line = 1;
+        let column = 1;
+        for (let i = 0; i < position && i < text.length; i++) {
+            if (text[i] === '\n') {
+                line++;
+                column = 1;
+            } else {
+                column++;
+            }
+        }
+        return { line, column };
+    }
+
+    function parseJsonError(error, jsonText) {
+        const message = error.message || '';
+
+        // Try to extract position from error message (e.g., "at position 123" or "at line 5 column 10")
+        let positionMatch = message.match(/at position (\d+)/i);
+        if (positionMatch) {
+            const position = parseInt(positionMatch[1], 10);
+            const location = getLineFromPosition(jsonText, position);
+            if (location) {
+                return `Syntax error at line ${location.line}, column ${location.column}: ${message}`;
+            }
+        }
+
+        // Some browsers include line/column directly
+        let lineMatch = message.match(/line (\d+)/i);
+        let columnMatch = message.match(/column (\d+)/i);
+        if (lineMatch) {
+            const line = lineMatch[1];
+            const column = columnMatch ? columnMatch[1] : '?';
+            return `Syntax error at line ${line}, column ${column}: ${message}`;
+        }
+
+        // Fallback: try to find common JSON syntax issues and locate them
+        return `JSON syntax error: ${message}`;
+    }
+
     function validateJsonPrompt() {
-        if (!jsonPromptInput) {
+        if (!jsonEditor) {
             return false;
         }
 
-        const value = jsonPromptInput.value.trim();
+        const value = jsonEditor.getValue().trim();
         if (!value) {
             setJsonPromptValidity(false, 'JSON is required.');
             return false;
@@ -79,16 +139,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 return false;
             }
         } catch (error) {
-            setJsonPromptValidity(false, 'JSON is invalid. Check commas, quotes, and braces.');
+            const errorMessage = parseJsonError(error, value);
+            setJsonPromptValidity(false, errorMessage);
             return false;
         }
 
         setJsonPromptValidity(true, '');
         return true;
-    }
-
-    if (jsonPromptInput) {
-        jsonPromptInput.addEventListener('input', validateJsonPrompt);
     }
 
     if (saveJsonPrompt && jsonPromptModal) {
@@ -101,10 +158,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         jsonPromptModal.addEventListener('hidden.bs.modal', () => {
-            if (jsonPromptInput) {
-                jsonPromptInput.value = '';
+            if (jsonEditor) {
+                jsonEditor.setValue('');
             }
             setJsonPromptValidity(false, 'JSON is required.');
+        });
+
+        // Refresh CodeMirror when modal is shown (fixes rendering issues)
+        jsonPromptModal.addEventListener('shown.bs.modal', () => {
+            if (jsonEditor) {
+                jsonEditor.refresh();
+                jsonEditor.focus();
+            }
         });
     }
 
