@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Prompt Architect</title>
+    
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    
+    <!-- Choices.js CSS (Select2 alternative without jQuery) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/styles/choices.min.css">
+    
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        main {
+            flex: 1;
+        }
+        
+        footer {
+            background-color: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            margin-top: auto;
+        }
+        
+        .sidebar {
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 300px;
+            background-color: #343a40;
+            transition: left 0.3s ease;
+            z-index: 1050;
+            overflow-y: auto;
+        }
+        
+        .sidebar.show {
+            left: 0;
+        }
+        
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1040;
+        }
+        
+        .sidebar-overlay.show {
+            display: block;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .sidebar .nav-link:hover {
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="d-flex flex-column p-3">
+            <h5 class="text-white mb-3">Menu</h5>
+            <ul class="nav nav-pills flex-column mb-auto">
+                <li class="nav-item">
+                    <a href="#" class="nav-link active" aria-current="page">
+                        Domů
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-link">
+                        Formuláře
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-link">
+                        Nastavení
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-link">
+                        O projektu
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Sidebar overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    
+    <!-- Main content -->
+    <main>
+        <!-- Header -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
+            <div class="container-fluid">
+                <button class="btn btn-outline-secondary me-2" id="menuToggle" type="button">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <a class="navbar-brand" href="#">JSON Prompt Architect</a>
+            </div>
+        </nav>
+        
+        <!-- Content -->
+        <div class="container mt-4">
+            <h1 class="mb-4">JSON Prompt Architect</h1>
+            
+            <div class="row">
+                <div class="col-12">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Ukázka formuláře</h5>
+                        </div>
+                        <div class="card-body">
+                            <form>
+                                <!-- Input field -->
+                                <div class="mb-3">
+                                    <label for="textInput" class="form-label">Textové pole</label>
+                                    <input type="text" class="form-control" id="textInput" placeholder="Zadejte text">
+                                    <div class="form-text">Příklad textového vstupu</div>
+                                </div>
+                                
+                                <!-- Select field -->
+                                <div class="mb-3">
+                                    <label for="basicSelect" class="form-label">Základní výběr</label>
+                                    <select class="form-select" id="basicSelect">
+                                        <option value="">Vyberte možnost</option>
+                                        <option value="1">Možnost 1</option>
+                                        <option value="2">Možnost 2</option>
+                                        <option value="3">Možnost 3</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Choices.js Select -->
+                                <div class="mb-3">
+                                    <label for="choicesSelect" class="form-label">Pokročilý výběr (Choices.js)</label>
+                                    <select class="form-select" id="choicesSelect" multiple>
+                                        <option value="javascript">JavaScript</option>
+                                        <option value="python">Python</option>
+                                        <option value="java">Java</option>
+                                        <option value="csharp">C#</option>
+                                        <option value="php">PHP</option>
+                                    </select>
+                                    <div class="form-text">Vícenásobný výběr s vyhledáváním</div>
+                                </div>
+                                
+                                <!-- Textarea -->
+                                <div class="mb-3">
+                                    <label for="textareaInput" class="form-label">Textová oblast</label>
+                                    <textarea class="form-control" id="textareaInput" rows="3" placeholder="Zadejte delší text"></textarea>
+                                </div>
+                                
+                                <!-- Buttons -->
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary">Odeslat</button>
+                                    <button type="reset" class="btn btn-secondary">Reset</button>
+                                    <button type="button" class="btn btn-outline-info">Info</button>
+                                    <button type="button" class="btn btn-outline-warning">Varování</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="py-3">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <p class="mb-1">
+                        <a href="https://github.com/polyweb-cz/json-prompt-architect" class="text-decoration-none" target="_blank">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-github" viewBox="0 0 16 16">
+                                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                            </svg>
+                            GitHub
+                        </a>
+                    </p>
+                    <p class="text-muted mb-0">
+                        <small>Licence: <a href="LICENSE" class="text-muted">Apache License 2.0</a></small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Bootstrap 5.3 JS Bundle (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+    
+    <!-- Choices.js (Select2 alternative without jQuery) -->
+    <script src="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/scripts/choices.min.js"></script>
+    
+    <script>
+        // Initialize Choices.js on the select element
+        document.addEventListener('DOMContentLoaded', function() {
+            const choicesSelect = new Choices('#choicesSelect', {
+                removeItemButton: true,
+                searchEnabled: true,
+                placeholder: true,
+                placeholderValue: 'Vyberte programovací jazyky'
+            });
+            
+            // Sidebar toggle functionality
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            
+            function toggleSidebar() {
+                sidebar.classList.toggle('show');
+                sidebarOverlay.classList.toggle('show');
+            }
+            
+            menuToggle.addEventListener('click', toggleSidebar);
+            sidebarOverlay.addEventListener('click', toggleSidebar);
+        });
+    </script>
+</body>
+</html>
