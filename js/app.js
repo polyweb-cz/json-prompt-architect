@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     id: id,
                     type: 'section',
                     key: key,
+                    collapsed: false,
                     children: convertToMasterJson(value, parentPath + key + '.')
                 });
             } else {
@@ -91,18 +92,114 @@ document.addEventListener('DOMContentLoaded', function() {
         if (typeof Sortable === 'undefined') return null;
 
         return new Sortable(container, {
+            group: 'nested', // Allow dragging between lists
             animation: 150,
             handle: '.drag-handle',
             draggable: '.json-block, .json-section',
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
+            fallbackOnBody: true,
+            swapThreshold: 0.65,
             onEnd: function(evt) {
-                if (evt.oldIndex === evt.newIndex) return;
-                // Reorder in masterJson
-                const movedItem = fieldsArray.splice(evt.oldIndex, 1)[0];
-                fieldsArray.splice(evt.newIndex, 0, movedItem);
+                // If moving between lists, Sortable handles the array manipulation via the 'group' option? 
+                // Actually SortableJS with frameworks often requires manual array management.
+                // However, for this vanilla JS implementation, we need to be careful.
+                // Since we are not using a reactive framework, simply re-rendering might be safer,
+                // or we trust Sortable's DOM manipulation and just validate.
+                // But wait, masterJson needs to be updated.
+                
+                // Note: Complex nested reordering in vanilla JS with just this array splice logic 
+                // is difficult if moving across arrays. 
+                // For now, we will stick to the existing logic which handles reordering within the SAME list.
+                // If 'evt.from' !== 'evt.to', we need to handle cross-list movement.
+                
+                // IMPORTANT: The previous implementation only handled reordering within the same list.
+                // Handling cross-list updates in the data model (masterJson) requires finding the source and target arrays.
+                
+                // Trigger validation to clear/set errors based on new location
+                validateDuplicateKeys();
             }
         });
+    }
+
+    // SortableJS's native 'group' feature moves DOM elements, but we need to sync `masterJson`.
+    // We need a more robust way to sync the data model when items move between lists.
+    // Given the complexity of implementing manual array syncing for nested lists in vanilla JS without a framework,
+    // we will rely on DOM parsing to rebuild masterJson or accept that we need to find the specific arrays.
+    
+    // BETTER APPROACH FOR DATA SYNC:
+    // Since we are building a visual tool, it is often easier to rebuild the JSON model from the DOM 
+    // after a complex drop, OR simply attach the data object to the DOM element and move it.
+    
+    // Let's refine initSortable to handle the Data Model update properly for cross-list drops.
+    
+    function initSortable(container, fieldsArray) {
+        if (typeof Sortable === 'undefined') return null;
+
+        return new Sortable(container, {
+            group: 'nested',
+            animation: 150,
+            handle: '.drag-handle',
+            draggable: '.json-block, .json-section',
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            fallbackOnBody: true,
+            swapThreshold: 0.65,
+            onEnd: function(evt) {
+                const itemEl = evt.item;
+                const newIndex = evt.newIndex;
+                const oldIndex = evt.oldIndex;
+                const toContainer = evt.to;
+                const fromContainer = evt.from;
+                
+                // If the item wasn't moved to a new position, do nothing
+                if (newIndex === oldIndex && toContainer === fromContainer) return;
+
+                // We need to move the data in masterJson.
+                // 1. Find the object in the source array
+                // 2. Remove it
+                // 3. Insert it into the target array
+                
+                // To do this effectively, we need reference to the arrays.
+                // 'fieldsArray' passed to this function is the array for THIS container.
+                // However, Sortable doesn't give us the 'fieldsArray' of the 'to' container easily in the onEnd event of the 'from' container.
+                
+                // Alternative: Rebuild masterJson from DOM after every drag. 
+                // This is robust and prevents state desync.
+                rebuildMasterJsonFromDom();
+                validateDuplicateKeys();
+            }
+        });
+    }
+    
+    function rebuildMasterJsonFromDom() {
+        masterJson.fields = parseDomToFields(jsonBlocksContainer);
+    }
+    
+    function parseDomToFields(container) {
+        const fields = [];
+        // Get direct children only
+        const children = Array.from(container.children).filter(el => 
+            el.classList.contains('json-block') || el.classList.contains('json-section')
+        );
+        
+        children.forEach(el => {
+            const id = el.dataset.id;
+            const existingField = findFieldById(masterJson.fields, id)?.field;
+            
+            if (existingField) {
+                // Keep the existing reference to preserve data, but update structure
+                if (existingField.type === 'section') {
+                    // Recursively find children in the DOM
+                    const childrenContainer = el.querySelector('.section-children');
+                    if (childrenContainer) {
+                        existingField.children = parseDomToFields(childrenContainer);
+                    }
+                }
+                fields.push(existingField);
+            }
+        });
+        return fields;
     }
 
     function initRootSortable() {
@@ -186,10 +283,16 @@ document.addEventListener('DOMContentLoaded', function() {
         div.dataset.type = 'section';
 
         div.innerHTML = `
-            <div class="section-header">
-                <span class="drag-handle" title="Drag to reorder">&#9776;</span>
-                <input type="text" class="form-control form-control-sm section-name" placeholder="Section name" value="${escapeHtml(field.key || '')}">
-                <button type="button" class="btn-delete" title="Delete section">&times;</button>
+            <div class="section-header d-flex align-items-center">
+                <span class="drag-handle me-2" title="Drag to reorder">&#9776;</span>
+                <input type="text" class="form-control form-control-sm section-name me-2" placeholder="Section name" value="${escapeHtml(field.key || '')}">
+                
+                <div class="form-check form-switch me-2" title="Collapse by default">
+                    <input class="form-check-input section-collapsed" type="checkbox" id="collapsed_${field.id}" ${field.collapsed ? 'checked' : ''}>
+                    <label class="form-check-label small text-muted" for="collapsed_${field.id}"><small>Collapsed</small></label>
+                </div>
+                
+                <button type="button" class="btn-close ms-auto" aria-label="Delete section"></button>
             </div>
             <div class="section-children"></div>
             <div class="block-actions d-flex gap-2 mt-2">
@@ -213,8 +316,12 @@ document.addEventListener('DOMContentLoaded', function() {
             updateFieldInMasterJson(field.id, 'key', e.target.value);
             validateDuplicateKeys();
         });
+        
+        div.querySelector('.section-collapsed').addEventListener('change', (e) => {
+            updateFieldInMasterJson(field.id, 'collapsed', e.target.checked);
+        });
 
-        div.querySelector('.btn-delete').addEventListener('click', () => {
+        div.querySelector('.btn-close').addEventListener('click', () => {
             removeFieldFromMasterJson(field.id);
             div.remove();
             updateEmptyState();
@@ -225,10 +332,12 @@ document.addEventListener('DOMContentLoaded', function() {
             addChildToSection(field.id, newField);
             const newElement = createKeyValueElement(newField);
             childrenContainer.appendChild(newElement);
+            // Re-bind sortable if needed? Sortable should handle new children if container is same.
+            // But we might need to refresh? SortableJS usually observes DOM.
         });
 
         div.querySelector('.add-child-section').addEventListener('click', () => {
-            const newField = { id: generateId(), type: 'section', key: '', children: [] };
+            const newField = { id: generateId(), type: 'section', key: '', collapsed: false, children: [] };
             addChildToSection(field.id, newField);
             const newElement = createSectionElement(newField);
             childrenContainer.appendChild(newElement);
@@ -307,8 +416,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 const key = keyInput.value.trim();
                 if (key) {
                     // Get parent for scope
-                    const parent = block.parentElement;
-                    const scope = parent.dataset.id || 'root';
+                    // Look for the closest section parent. If none, we are in root.
+                    const parentSection = block.closest('.json-section');
+                    // Important: If the block IS a section, we must look for its parent section (grandparent of the input), 
+                    // BUT block.closest('.json-section') returns the block itself if it matches.
+                    // So we need to look at the parent's closest section.
+                    
+                    const parentContainer = block.parentElement; 
+                    // parentContainer is either jsonBlocksContainer (root) or .section-children
+                    
+                    const realParentSection = parentContainer.closest('.json-section');
+                    const scope = realParentSection ? realParentSection.dataset.id : 'root';
+                    
                     const scopeKey = scope + '::' + key;
 
                     if (keyMap.has(scopeKey)) {
@@ -339,7 +458,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (addSectionBtn) {
         addSectionBtn.addEventListener('click', () => {
-            const newField = { id: generateId(), type: 'section', key: '', children: [] };
+            const newField = { id: generateId(), type: 'section', key: '', collapsed: false, children: [] };
             masterJson.fields.push(newField);
             const element = createSectionElement(newField);
             jsonBlocksContainer.insertBefore(element, emptyState);
@@ -390,12 +509,41 @@ document.addEventListener('DOMContentLoaded', function() {
             if (field.type === 'section') {
                 const section = document.createElement('div');
                 section.className = 'card mb-3';
+                const isCollapsed = field.collapsed === true; // Default to false if undefined
+                
                 section.innerHTML = `
-                    <div class="card-header py-2">
+                    <div class="card-header py-2 d-flex align-items-center user-select-none" 
+                         data-bs-toggle="collapse" 
+                         data-bs-target="#collapse_${field.id}" 
+                         aria-expanded="${!isCollapsed}" 
+                         aria-controls="collapse_${field.id}" 
+                         style="cursor: pointer;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-down me-2 transition-transform" viewBox="0 0 16 16" style="transition: transform 0.2s;">
+                            <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                        </svg>
                         <strong>${escapeHtml(field.key || 'Unnamed Section')}</strong>
                     </div>
-                    <div class="card-body py-2"></div>
+                    <div id="collapse_${field.id}" class="collapse ${isCollapsed ? '' : 'show'}">
+                        <div class="card-body py-2"></div>
+                    </div>
                 `;
+                
+                const collapseEl = section.querySelector('.collapse');
+                const chevron = section.querySelector('.bi-chevron-down');
+                
+                // Add event listeners to rotate chevron
+                collapseEl.addEventListener('show.bs.collapse', () => {
+                    chevron.style.transform = 'rotate(0deg)';
+                });
+                collapseEl.addEventListener('hide.bs.collapse', () => {
+                    chevron.style.transform = 'rotate(-90deg)';
+                });
+                
+                // Set initial rotation
+                if (isCollapsed) {
+                    chevron.style.transform = 'rotate(-90deg)';
+                }
+
                 const body = section.querySelector('.card-body');
                 if (field.children && field.children.length > 0) {
                     renderUseFields(field.children, body);
