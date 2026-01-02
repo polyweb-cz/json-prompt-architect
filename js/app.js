@@ -1462,9 +1462,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 const jsonStr = atob(data);
                 masterJson = JSON.parse(jsonStr);
                 renderEditMode();
-                
-                // If data is loaded, maybe switch to USE mode or just stay ready
-                // Let's stay in EDIT mode but show it's populated
+
+                // Switch to USE mode when loading from shared URL
+                const useTab = document.getElementById('use-tab');
+                if (useTab) {
+                    const tab = new bootstrap.Tab(useTab);
+                    tab.show();
+                }
             } catch (e) {
                 console.error('Failed to load from URL', e);
             }
