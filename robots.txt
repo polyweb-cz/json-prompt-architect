@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://json-prompt-architect.polyweb.cz/sitemap.xml
