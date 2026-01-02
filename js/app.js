@@ -84,6 +84,24 @@ document.addEventListener('DOMContentLoaded', function() {
         return fields;
     }
 
+    // ===== SORTABLE INITIALIZATION =====
+    function initSortable(container, fieldsArray) {
+        if (typeof Sortable === 'undefined') return;
+
+        new Sortable(container, {
+            animation: 150,
+            handle: '.drag-handle',
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            filter: '.empty-state, .block-actions',
+            onEnd: function(evt) {
+                // Reorder in masterJson
+                const movedItem = fieldsArray.splice(evt.oldIndex, 1)[0];
+                fieldsArray.splice(evt.newIndex, 0, movedItem);
+            }
+        });
+    }
+
     // ===== RENDER EDIT MODE =====
     function renderEditMode() {
         // Clear container (except empty state)
@@ -98,6 +116,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Update empty state visibility
         updateEmptyState();
+
+        // Initialize sortable for root level
+        initSortable(jsonBlocksContainer, masterJson.fields);
     }
 
     function createBlockElement(field) {
@@ -115,6 +136,7 @@ document.addEventListener('DOMContentLoaded', function() {
         div.dataset.type = 'keyvalue';
 
         div.innerHTML = `
+            <span class="drag-handle" title="Drag to reorder">&#9776;</span>
             <input type="text" class="form-control form-control-sm block-key" placeholder="Key" value="${escapeHtml(field.key || '')}">
             <select class="form-select form-select-sm block-type">
                 <option value="text" ${field.type === 'text' ? 'selected' : ''}>Text</option>
@@ -154,6 +176,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         div.innerHTML = `
             <div class="section-header">
+                <span class="drag-handle" title="Drag to reorder">&#9776;</span>
                 <input type="text" class="form-control form-control-sm section-name" placeholder="Section name" value="${escapeHtml(field.key || '')}">
                 <button type="button" class="btn-delete" title="Delete section">&times;</button>
             </div>
@@ -199,6 +222,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const newElement = createSectionElement(newField);
             childrenContainer.appendChild(newElement);
         });
+
+        // Initialize sortable for section children
+        if (!field.children) field.children = [];
+        initSortable(childrenContainer, field.children);
 
         return div;
     }
@@ -365,10 +392,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 container.appendChild(section);
             } else {
                 const formGroup = document.createElement('div');
-                formGroup.className = 'mb-2';
+                formGroup.className = 'row mb-2 align-items-center';
                 formGroup.innerHTML = `
-                    <label class="form-label small mb-1">${escapeHtml(field.key || 'Unnamed')}</label>
-                    <input type="text" class="form-control form-control-sm use-field" data-id="${field.id}" value="${escapeHtml(field.defaultValue || '')}">
+                    <label class="col-md-3 col-form-label col-form-label-sm">${escapeHtml(field.key || 'Unnamed')}</label>
+                    <div class="col-md-9">
+                        <input type="text" class="form-control form-control-sm use-field" data-id="${field.id}" value="${escapeHtml(field.defaultValue || '')}">
+                    </div>
                 `;
                 formGroup.querySelector('.use-field').addEventListener('input', updateOutputJson);
                 container.appendChild(formGroup);

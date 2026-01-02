@@ -146,6 +146,30 @@ footer {
     opacity: 1;
 }
 
+.json-block .drag-handle,
+.json-section .drag-handle {
+    cursor: grab;
+    padding: 0.25rem 0.5rem;
+    color: #6c757d;
+    opacity: 0.5;
+}
+
+.json-block .drag-handle:hover,
+.json-section .drag-handle:hover {
+    opacity: 1;
+}
+
+.json-block.sortable-ghost,
+.json-section.sortable-ghost {
+    opacity: 0.4;
+    background-color: #e9ecef;
+}
+
+.json-block.sortable-chosen,
+.json-section.sortable-chosen {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
 /* JSON Section Block */
 .json-section {
     margin-bottom: 0.75rem;
@@ -195,6 +219,10 @@ footer {
 /* Empty state */
 .empty-state {
     color: #6c757d;
+    background-color: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    border-radius: 0.5rem;
+    padding: 2rem;
 }
 
 /* Block actions */
