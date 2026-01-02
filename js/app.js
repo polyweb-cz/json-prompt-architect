@@ -46,9 +46,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let schemaValidator = null;
     let jsonEditor = null;
 
+    // Initialize Ajv for future schema validation (schemaValidator stays null until a schema is set)
     if (typeof Ajv !== 'undefined') {
         ajv = new Ajv({ allErrors: true, strict: false });
-        schemaValidator = ajv.compile(true);
     }
 
     // Initialize CodeMirror
