@@ -67,18 +67,60 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ... (validation logic) ...
     
+    /**
+     * Get the current value of a field from the Use form
+     */
+    function getFieldValue(field) {
+        if (field.type === 'checkbox') {
+            const input = document.querySelector(`.use-field[data-id="${field.id}"]`);
+            return input ? input.checked : field.defaultValue;
+        } else if (field.type === 'radio') {
+            const checked = document.querySelector(`.use-field[data-id="${field.id}"]:checked`);
+            return checked ? checked.value : field.defaultValue;
+        } else if (field.type === 'checkboxList') {
+            const checked = document.querySelectorAll(`.use-field[data-id="${field.id}"]:checked`);
+            if (checked.length > 0 || document.querySelector(`.use-field[data-id="${field.id}"]`)) {
+                return Array.from(checked).map(el => el.value);
+            }
+            return field.defaultValue || [];
+        } else if (field.type === 'multiselect') {
+            const select = document.querySelector(`.use-field[data-id="${field.id}"]`);
+            if (select) {
+                return Array.from(select.selectedOptions).map(opt => opt.value);
+            }
+            return field.defaultValue || [];
+        } else {
+            // text, textarea, select
+            const input = document.querySelector(`.use-field[data-id="${field.id}"]`);
+            return input ? input.value : (field.defaultValue || '');
+        }
+    }
+
     function checkFieldValidity(field, value) {
-        if (field.validation?.minLength && value.length < field.validation.minLength) {
+        // Length validation for text/textarea
+        if (field.validation?.minLength && typeof value === 'string' && value.length < field.validation.minLength) {
             return `"${field.key}": Minimum length is ${field.validation.minLength} characters (current: ${value.length}).`;
-        } 
-        if (field.validation?.maxLength && value.length > field.validation.maxLength) {
+        }
+        if (field.validation?.maxLength && typeof value === 'string' && value.length > field.validation.maxLength) {
             return `"${field.key}": Maximum length is ${field.validation.maxLength} characters (current: ${value.length}).`;
         }
+
+        // Count validation for multiselect/checkboxList
+        if (Array.isArray(value)) {
+            const count = value.length;
+            if (field.validation?.minCount !== undefined && count < field.validation.minCount) {
+                return `"${field.key}": Minimum ${field.validation.minCount} option(s) required (current: ${count}).`;
+            }
+            if (field.validation?.maxCount !== undefined && count > field.validation.maxCount) {
+                return `"${field.key}": Maximum ${field.validation.maxCount} option(s) allowed (current: ${count}).`;
+            }
+        }
+
         return null;
     }
 
     function validateUseField(input, field) {
-        const val = input.value;
+        const val = getFieldValue(field);
         const error = checkFieldValidity(field, val);
         
         // Strip field key for inline error
@@ -102,24 +144,22 @@ document.addEventListener('DOMContentLoaded', function() {
     function validateAllUseFields(fields = masterJson.fields) {
         let isValid = true;
         let errors = [];
-        
+
         function recurse(currentFields) {
             currentFields.forEach(field => {
                 if (field.type === 'section') {
                     if (field.children) recurse(field.children);
-                } else {
-                    const input = document.querySelector(`.use-field[data-id="${field.id}"]`);
-                    if (input) {
-                        const error = checkFieldValidity(field, input.value);
-                        if (error) {
-                            isValid = false;
-                            errors.push(error);
-                        }
+                } else if (field.key) {
+                    const value = getFieldValue(field);
+                    const error = checkFieldValidity(field, value);
+                    if (error) {
+                        isValid = false;
+                        errors.push(error);
                     }
                 }
             });
         }
-        
+
         recurse(fields);
         return { isValid, errors };
     }
@@ -460,10 +500,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     // Update defaultValue if removed option was default
                     if (isSingleDefault && field.defaultValue === removedOpt) {
+                        // For single default, select first available option
                         field.defaultValue = field.options[0] || '';
                         updateFieldInMasterJson(field.id, 'defaultValue', field.defaultValue);
                     } else if (!isSingleDefault && Array.isArray(field.defaultValue)) {
+                        // For multi default, remove from array
                         field.defaultValue = field.defaultValue.filter(v => v !== removedOpt);
+                        // If array becomes empty and minCount requires at least one, select first option
+                        const minCount = field.validation?.minCount ?? 1;
+                        if (field.defaultValue.length === 0 && minCount > 0 && field.options.length > 0) {
+                            field.defaultValue = [field.options[0]];
+                        }
                         updateFieldInMasterJson(field.id, 'defaultValue', field.defaultValue);
                     }
 
@@ -616,7 +663,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="flex-grow-1 value-container">
                     ${valueInputHtml}
                 </div>
-                <button type="button" class="btn btn-sm btn-outline-secondary btn-settings" title="Settings">
+                <button type="button" class="btn btn-sm btn-outline-secondary btn-settings ${!needsLengthValidation(field.type) && !needsCountValidation(field.type) ? 'disabled' : ''}" title="Settings" ${!needsLengthValidation(field.type) && !needsCountValidation(field.type) ? 'disabled' : ''}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
                         <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
                         <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.21l.149.324a.876.876 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.21 2.54l.324-.149a.876.876 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.21l-.149-.324a.876.876 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.21-2.54l-.324.149a.876.876 0 0 1-1.255-.52l-.094-.319zM8 0c-.556 0-1.003.448-1.043 1.002h.013l-.1 1.273c-.106.978-.96 1.693-1.928 1.625l-1.22-.093c-.986-.075-1.76.76-1.605 1.728l.192 1.203c.159.993-.393 1.942-1.296 2.203l-1.15.334c-.958.278-1.135 1.464-.326 2.19l.86 1.03c.69.83.69 2.052-.002 2.88l-.859 1.032c-.808.724-.632 1.91.327 2.188l1.15.334c.903.261 1.455 1.21 1.297 2.204l-.193 1.203c-.155.968.62 1.803 1.605 1.728l1.22-.094c.968-.067 1.822.648 1.928 1.625l.1 1.274C7.042 15.552 7.556 16 8 16s1.003-.448 1.043-1.002h-.013l.1-1.273c.106-.978.96-1.693 1.928-1.625l1.22.093c.986.075 1.76-.76 1.605-1.728l-.192-1.203c-.159-.993.393-1.942 1.296-2.203l1.15-.334c.958-.278 1.135-1.464.326-2.19l-.86-1.03c-.69-.83-.69-2.052.002-2.88l.859-1.032c.808-.724.632-1.91-.327-2.188l-1.15-.334c-.903-.261-1.455-1.21-1.297-2.204l.193-1.203c.155-.968-.62-1.803-1.605-1.728l-1.22.094c-.968.067-1.822-.648-1.928-1.625l-.1-1.274C9.042.448 8.556 0 8 0z"/>
@@ -647,10 +694,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     field.validation.maxLength = 255;
                     delete field.validation.minCount;
                     delete field.validation.maxCount;
-                } else {
-                    // Remove length validation for others
+                } else if (needsCountValidation(newType)) {
+                    // For multiselect/checkboxList - set default minCount=1
                     delete field.validation.minLength;
                     delete field.validation.maxLength;
+                    if (field.validation.minCount === undefined) {
+                        field.validation.minCount = 1;
+                    }
+                } else {
+                    // Remove length validation for others (select, radio, checkbox)
+                    delete field.validation.minLength;
+                    delete field.validation.maxLength;
+                    delete field.validation.minCount;
+                    delete field.validation.maxCount;
                 }
                 
                 // Re-render row to switch input/textarea and update settings
@@ -1121,16 +1177,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function checkFieldValidity(field, value) {
-        if (field.validation?.minLength && value.length < field.validation.minLength) {
-            return `"${field.key}": Minimum length is ${field.validation.minLength} characters (current: ${value.length}).`;
-        } 
-        if (field.validation?.maxLength && value.length > field.validation.maxLength) {
-            return `"${field.key}": Maximum length is ${field.validation.maxLength} characters (current: ${value.length}).`;
-        }
-        return null;
-    }
-
     function updateOutputJson() {
         const showOnlyValid = onlyValidJsonToggle ? onlyValidJsonToggle.checked : true;
         const validation = validateAllUseFields();
@@ -1161,34 +1207,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (field.key) {
                     result[field.key] = buildFinalJson(field.children || []);
                 }
-            } else {
-                if (field.key) {
-                    let value = field.defaultValue;
-                    
-                    if (field.type === 'checkbox') {
-                        const input = document.querySelector(`.use-field[data-id="${field.id}"]`);
-                        if (input) value = input.checked;
-                    } else if (field.type === 'radio') {
-                        const checked = document.querySelector(`.use-field[data-id="${field.id}"]:checked`);
-                        if (checked) value = checked.value;
-                    } else if (field.type === 'checkboxList') {
-                        const checked = document.querySelectorAll(`.use-field[data-id="${field.id}"]:checked`);
-                        if (checked.length > 0 || document.querySelector(`.use-field[data-id="${field.id}"]`)) {
-                             value = Array.from(checked).map(el => el.value);
-                        }
-                    } else if (field.type === 'multiselect') {
-                         const select = document.querySelector(`.use-field[data-id="${field.id}"]`);
-                         if (select) {
-                             value = Array.from(select.selectedOptions).map(opt => opt.value);
-                         }
-                    } else {
-                        // text, textarea, select
-                        const input = document.querySelector(`.use-field[data-id="${field.id}"]`);
-                        if (input) value = input.value;
-                    }
-                    
-                    result[field.key] = value;
-                }
+            } else if (field.key) {
+                result[field.key] = getFieldValue(field);
             }
         });
 
