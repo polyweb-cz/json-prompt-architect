@@ -448,9 +448,9 @@ document.addEventListener('DOMContentLoaded', function() {
                        title="Set as default">
                 <input type="text" class="form-control form-control-sm option-value flex-grow-1"
                        value="${escapeHtml(opt)}" placeholder="Option value">
-                <span class="option-drag-handle px-1" style="cursor: grab; opacity: 0.5;" title="Drag to reorder">⋮⋮</span>
+                <span class="option-drag-handle px-1" style="cursor: grab; opacity: 0.5;" title="Drag to reorder"><i class="fa-solid fa-grip-vertical"></i></span>
                 <button type="button" class="btn btn-sm btn-option-delete text-danger border-0 p-0 ${canDelete ? '' : 'invisible'}"
-                        title="Remove option">&times;</button>
+                        title="Remove option"><i class="fa-solid fa-xmark"></i></button>
             `;
 
             optionsList.appendChild(row);
@@ -462,7 +462,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.className = 'btn btn-sm btn-link text-decoration-none p-0 mt-1';
-        addBtn.textContent = '+ Add option';
+        addBtn.innerHTML = '<i class="fa-solid fa-plus me-1"></i>Add option';
         container.appendChild(addBtn);
 
         // Initialize SortableJS for drag & drop
@@ -649,7 +649,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             inputRow.innerHTML = `
-                <span class="drag-handle pt-1" title="Drag to reorder" style="cursor: grab; opacity: 0.5;">&#9776;</span>
+                <span class="drag-handle pt-1" title="Drag to reorder" style="cursor: grab; opacity: 0.5;"><i class="fa-solid fa-grip-lines"></i></span>
                 <input type="text" class="form-control form-control-sm block-key" style="flex: 0 0 200px; font-weight: 500;" placeholder="Key" value="${escapeHtml(field.key || '')}">
                 <select class="form-select form-select-sm block-type" style="flex: 0 0 120px;">
                     <option value="text" ${field.type === 'text' ? 'selected' : ''}>Short Text</option>
@@ -664,12 +664,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     ${valueInputHtml}
                 </div>
                 <button type="button" class="btn btn-sm btn-outline-secondary btn-settings ${!needsLengthValidation(field.type) && !needsCountValidation(field.type) ? 'disabled' : ''}" title="Settings" ${!needsLengthValidation(field.type) && !needsCountValidation(field.type) ? 'disabled' : ''}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
-                        <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
-                        <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.21l.149.324a.876.876 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.21 2.54l.324-.149a.876.876 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.21l-.149-.324a.876.876 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.21-2.54l-.324.149a.876.876 0 0 1-1.255-.52l-.094-.319zM8 0c-.556 0-1.003.448-1.043 1.002h.013l-.1 1.273c-.106.978-.96 1.693-1.928 1.625l-1.22-.093c-.986-.075-1.76.76-1.605 1.728l.192 1.203c.159.993-.393 1.942-1.296 2.203l-1.15.334c-.958.278-1.135 1.464-.326 2.19l.86 1.03c.69.83.69 2.052-.002 2.88l-.859 1.032c-.808.724-.632 1.91.327 2.188l1.15.334c.903.261 1.455 1.21 1.297 2.204l-.193 1.203c-.155.968.62 1.803 1.605 1.728l1.22-.094c.968-.067 1.822.648 1.928 1.625l.1 1.274C7.042 15.552 7.556 16 8 16s1.003-.448 1.043-1.002h-.013l.1-1.273c.106-.978.96-1.693 1.928-1.625l1.22.093c.986.075 1.76-.76 1.605-1.728l-.192-1.203c-.159-.993.393-1.942 1.296-2.203l1.15-.334c.958-.278 1.135-1.464.326-2.19l-.86-1.03c-.69-.83-.69-2.052.002-2.88l.859-1.032c.808-.724.632-1.91-.327-2.188l-1.15-.334c-.903-.261-1.455-1.21-1.297-2.204l.193-1.203c.155-.968-.62-1.803-1.605-1.728l-1.22.094c-.968.067-1.822-.648-1.928-1.625l-.1-1.274C9.042.448 8.556 0 8 0z"/>
-                    </svg>
+                    <i class="fa-solid fa-gear"></i>
                 </button>
-                <button type="button" class="btn btn-delete text-danger bg-transparent border-0 p-1 fs-5 lh-1" title="Delete">&times;</button>
+                <button type="button" class="btn btn-delete text-danger bg-transparent border-0 p-1" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
             `;
 
             // Bind events for main row
@@ -806,7 +803,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         div.innerHTML = `
             <div class="section-header d-flex align-items-center">
-                <span class="drag-handle me-2" title="Drag to reorder">&#9776;</span>
+                <span class="drag-handle me-2" title="Drag to reorder"><i class="fa-solid fa-grip-lines"></i></span>
                 <input type="text" class="form-control form-control-sm section-name me-2" placeholder="Section name" value="${escapeHtml(field.key || '')}">
                 
                 <div class="form-check form-switch me-2" title="Collapse by default">
