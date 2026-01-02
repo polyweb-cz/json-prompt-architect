@@ -154,7 +154,9 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-info me-auto" id="formatJsonPrompt">Format</button>
+                    <span id="formatJsonPromptWrapper" class="me-auto" title="Enter valid JSON to enable formatting">
+                        <button type="button" class="btn btn-outline-info" id="formatJsonPrompt" disabled>Format</button>
+                    </span>
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" id="saveJsonPrompt" disabled>Save</button>
                 </div>

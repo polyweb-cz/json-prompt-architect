@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const jsonPromptError = document.getElementById('jsonPromptError');
     const saveJsonPrompt = document.getElementById('saveJsonPrompt');
     const formatJsonPrompt = document.getElementById('formatJsonPrompt');
+    const formatJsonPromptWrapper = document.getElementById('formatJsonPromptWrapper');
     const addJsonButton = document.getElementById('addJsonButton');
 
     let ajv = null;
@@ -76,6 +77,18 @@ document.addEventListener('DOMContentLoaded', function() {
             jsonPromptError.textContent = message || 'Invalid JSON.';
         }
         saveJsonPrompt.disabled = !isValid;
+
+        // Update Format button state
+        if (formatJsonPrompt && formatJsonPromptWrapper) {
+            formatJsonPrompt.disabled = !isValid;
+            if (isValid) {
+                formatJsonPromptWrapper.removeAttribute('title');
+            } else if (message === 'JSON is required.') {
+                formatJsonPromptWrapper.setAttribute('title', 'Enter JSON to enable formatting');
+            } else {
+                formatJsonPromptWrapper.setAttribute('title', 'Fix JSON errors to enable formatting');
+            }
+        }
     }
 
     function getLineFromPosition(text, position) {
@@ -184,17 +197,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (formatJsonPrompt && jsonEditor) {
         formatJsonPrompt.addEventListener('click', () => {
             const value = jsonEditor.getValue().trim();
-            if (!value) {
-                return;
-            }
-            try {
-                const parsed = JSON.parse(value);
-                const formatted = JSON.stringify(parsed, null, 2);
-                jsonEditor.setValue(formatted);
-            } catch (error) {
-                // JSON is invalid, validation will show the error
-                validateJsonPrompt();
-            }
+            const parsed = JSON.parse(value);
+            const formatted = JSON.stringify(parsed, null, 2);
+            jsonEditor.setValue(formatted);
         });
     }
 });
