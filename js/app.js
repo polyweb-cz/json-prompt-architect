@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const useFormContainer = document.getElementById('useFormContainer');
     const jsonOutputPreviewEl = document.getElementById('jsonOutputPreview');
     const copyJsonBtn = document.getElementById('copyJsonBtn');
+    const onlyValidJsonToggle = document.getElementById('onlyValidJsonToggle');
     
     // Use Mode Actions
     const shareBtn = document.getElementById('shareBtn');
@@ -29,6 +30,99 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let masterJsonEditor = null;
     let outputJsonEditor = null;
+
+    // ... (rest of the file) ...
+
+    function updateOutputJson() {
+        const showOnlyValid = onlyValidJsonToggle ? onlyValidJsonToggle.checked : true;
+        const validation = validateAllUseFields();
+        
+        if (showOnlyValid && !validation.isValid) {
+            const errorMsg = "Validation Errors:\n\n" + validation.errors.join('\n');
+            if (outputJsonEditor) {
+                outputJsonEditor.setValue(errorMsg);
+            }
+            return;
+        }
+
+        const output = buildFinalJson(masterJson.fields);
+        if (outputJsonEditor) {
+            outputJsonEditor.setValue(JSON.stringify(output, null, 2));
+        }
+    }
+    
+    if (onlyValidJsonToggle) {
+        onlyValidJsonToggle.addEventListener('change', updateOutputJson);
+    }
+
+    function buildFinalJson(fields) {
+        // ... (existing code) ...
+    }
+
+    // ... (copy buttons) ...
+
+    // ... (tab switching) ...
+
+    // ... (sidebar) ...
+
+    // ... (validation logic) ...
+    
+    function checkFieldValidity(field, value) {
+        if (field.validation?.minLength && value.length < field.validation.minLength) {
+            return `"${field.key}": Minimum length is ${field.validation.minLength} characters (current: ${value.length}).`;
+        } 
+        if (field.validation?.maxLength && value.length > field.validation.maxLength) {
+            return `"${field.key}": Maximum length is ${field.validation.maxLength} characters (current: ${value.length}).`;
+        }
+        return null;
+    }
+
+    function validateUseField(input, field) {
+        const val = input.value;
+        const error = checkFieldValidity(field, val);
+        
+        // Strip field key for inline error
+        const inlineError = error ? error.substring(error.indexOf(':') + 2) : '';
+        
+        if (error) {
+            input.classList.add('is-invalid');
+            let next = input.nextElementSibling;
+            while(next) {
+                if (next.classList.contains('invalid-feedback')) {
+                    next.textContent = inlineError;
+                    break;
+                }
+                next = next.nextElementSibling;
+            }
+        } else {
+            input.classList.remove('is-invalid');
+        }
+    }
+    
+    function validateAllUseFields(fields = masterJson.fields) {
+        let isValid = true;
+        let errors = [];
+        
+        function recurse(currentFields) {
+            currentFields.forEach(field => {
+                if (field.type === 'section') {
+                    if (field.children) recurse(field.children);
+                } else {
+                    const input = document.querySelector(`.use-field[data-id="${field.id}"]`);
+                    if (input) {
+                        const error = checkFieldValidity(field, input.value);
+                        if (error) {
+                            isValid = false;
+                            errors.push(error);
+                        }
+                    }
+                }
+            });
+        }
+        
+        recurse(fields);
+        return { isValid, errors };
+    }
 
     // Initialize CodeMirror for Master JSON Preview
     if (masterJsonPreviewEl && typeof CodeMirror !== 'undefined') {
@@ -76,13 +170,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else if (typeof value !== 'string') {
                     defaultValue = String(value);
                 }
+                
+                // Determine initial type and validation
+                let type = 'text';
+                let validation = { minLength: 0, maxLength: 64 };
+                
+                // Heuristic: If string is long or has newlines, use textarea
+                if (typeof value === 'string' && (value.length > 64 || value.includes('\n'))) {
+                    type = 'textarea';
+                    validation = { minLength: 0, maxLength: 255 };
+                }
 
                 fields.push({
                     id: id,
-                    type: 'text',
+                    type: type,
                     key: key,
                     defaultValue: defaultValue,
-                    validation: {}
+                    validation: validation
                 });
             }
         }
@@ -309,8 +413,25 @@ document.addEventListener('DOMContentLoaded', function() {
             inputRow.querySelector('.block-type').addEventListener('change', (e) => {
                 const newType = e.target.value;
                 updateFieldInMasterJson(field.id, 'type', newType);
-                // Re-render row to switch input/textarea
+                
+                // Update default validation based on type
+                if (!field.validation) field.validation = {};
+                if (newType === 'text') {
+                    field.validation.maxLength = 64;
+                } else if (newType === 'textarea') {
+                    field.validation.maxLength = 255;
+                }
+                
+                // Re-render row to switch input/textarea and update settings
                 renderMainRow();
+                
+                // Update settings inputs manually since renderMainRow re-creates the settings div but inputs are bound to old values?
+                // Wait, renderMainRow does NOT re-create settingsDiv. settingsDiv is created once outside renderMainRow.
+                // So I need to update the inputs in settingsDiv.
+                const minLenInput = settingsDiv.querySelector('.setting-min-length');
+                const maxLenInput = settingsDiv.querySelector('.setting-max-length');
+                if (minLenInput) minLenInput.value = field.validation.minLength ?? '';
+                if (maxLenInput) maxLenInput.value = field.validation.maxLength ?? '';
             });
 
             inputRow.querySelector('.block-value').addEventListener('input', (e) => {
@@ -401,7 +522,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         div.querySelector('.add-child-keyvalue').addEventListener('click', () => {
-            const newField = { id: generateId(), type: 'text', key: '', defaultValue: '', validation: {} };
+            const newField = { 
+                id: generateId(), 
+                type: 'text', 
+                key: '', 
+                defaultValue: '', 
+                validation: { minLength: 0, maxLength: 64 } 
+            };
             addChildToSection(field.id, newField);
             const newElement = createKeyValueElement(newField);
             childrenContainer.appendChild(newElement);
@@ -527,7 +654,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // ===== ROOT LEVEL ADD BUTTONS =====
     if (addKeyValueBtn) {
         addKeyValueBtn.addEventListener('click', () => {
-            const newField = { id: generateId(), type: 'text', key: '', defaultValue: '', validation: {} };
+            const newField = { 
+                id: generateId(), 
+                type: 'text', 
+                key: '', 
+                defaultValue: '', 
+                validation: { minLength: 0, maxLength: 64 } 
+            };
             masterJson.fields.push(newField);
             const element = createKeyValueElement(newField);
             jsonBlocksContainer.insertBefore(element, emptyState);
@@ -631,34 +764,124 @@ document.addEventListener('DOMContentLoaded', function() {
                 container.appendChild(section);
             } else {
                 const formGroup = document.createElement('div');
-                formGroup.className = 'row mb-2 align-items-center'; // align-items-center good for inputs, maybe align-items-start for textarea
+                formGroup.className = 'row mb-2 align-items-center';
                 
+                // Validation attributes
+                const minLen = field.validation?.minLength;
+                const maxLen = field.validation?.maxLength;
+                const attrs = [];
+                if (minLen !== undefined && minLen !== null && minLen !== '') attrs.push(`minlength="${minLen}"`);
+                if (maxLen !== undefined && maxLen !== null && maxLen !== '') attrs.push(`maxlength="${maxLen}"`);
+                const attrsStr = attrs.join(' ');
+
                 let inputHtml = '';
                 if (field.type === 'textarea') {
-                    // Update alignment for textarea
                     formGroup.className = 'row mb-2 align-items-start'; 
-                    inputHtml = `<textarea class="form-control form-control-sm use-field" data-id="${field.id}" rows="3">${escapeHtml(field.defaultValue || '')}</textarea>`;
+                    inputHtml = `<textarea class="form-control form-control-sm use-field" data-id="${field.id}" rows="3" ${attrsStr}>${escapeHtml(field.defaultValue || '')}</textarea>`;
                 } else {
-                    inputHtml = `<input type="text" class="form-control form-control-sm use-field" data-id="${field.id}" value="${escapeHtml(field.defaultValue || '')}">`;
+                    inputHtml = `<input type="text" class="form-control form-control-sm use-field" data-id="${field.id}" value="${escapeHtml(field.defaultValue || '')}" ${attrsStr}>`;
                 }
+                
+                // Add invalid feedback container
+                inputHtml += `<div class="invalid-feedback"></div>`;
 
                 formGroup.innerHTML = `
                     <label class="col-md-3 col-form-label col-form-label-sm">${escapeHtml(field.key || 'Unnamed')}</label>
-                    <div class="col-md-9">
+                    <div class="col-md-9 position-relative">
                         ${inputHtml}
                     </div>
                 `;
-                formGroup.querySelector('.use-field').addEventListener('input', updateOutputJson);
+                
+                const inputEl = formGroup.querySelector('.use-field');
+                inputEl.addEventListener('input', (e) => {
+                    updateOutputJson();
+                    validateUseField(e.target, field);
+                });
+                
+                // Initial validation to show errors for default values (e.g. from URL)
+                validateUseField(inputEl, field);
+                
                 container.appendChild(formGroup);
             }
         });
     }
 
+    function checkFieldValidity(field, value) {
+        if (field.validation?.minLength && value.length < field.validation.minLength) {
+            return `"${field.key}": Minimum length is ${field.validation.minLength} characters (current: ${value.length}).`;
+        } 
+        if (field.validation?.maxLength && value.length > field.validation.maxLength) {
+            return `"${field.key}": Maximum length is ${field.validation.maxLength} characters (current: ${value.length}).`;
+        }
+        return null;
+    }
+
+    function validateUseField(input, field) {
+        const val = input.value;
+        const error = checkFieldValidity(field, val);
+        // Strip field key for inline error
+        const inlineError = error ? error.substring(error.indexOf(':') + 2) : '';
+        
+        if (error) {
+            input.classList.add('is-invalid');
+            let next = input.nextElementSibling;
+            while(next) {
+                if (next.classList.contains('invalid-feedback')) {
+                    next.textContent = inlineError;
+                    break;
+                }
+                next = next.nextElementSibling;
+            }
+        } else {
+            input.classList.remove('is-invalid');
+        }
+    }
+
+    function validateAllUseFields(fields = masterJson.fields) {
+        let isValid = true;
+        let errors = [];
+        
+        function recurse(currentFields) {
+            currentFields.forEach(field => {
+                if (field.type === 'section') {
+                    if (field.children) recurse(field.children);
+                } else {
+                    const input = document.querySelector(`.use-field[data-id="${field.id}"]`);
+                    if (input) {
+                        const error = checkFieldValidity(field, input.value);
+                        if (error) {
+                            isValid = false;
+                            errors.push(error);
+                        }
+                    }
+                }
+            });
+        }
+        
+        recurse(fields);
+        return { isValid, errors };
+    }
+
     function updateOutputJson() {
+        const showOnlyValid = onlyValidJsonToggle ? onlyValidJsonToggle.checked : true;
+        const validation = validateAllUseFields();
+        
+        if (showOnlyValid && !validation.isValid) {
+            const errorMsg = "Validation Errors:\n\n" + validation.errors.join('\n');
+            if (outputJsonEditor) {
+                outputJsonEditor.setValue(errorMsg);
+            }
+            return;
+        }
+
         const output = buildFinalJson(masterJson.fields);
         if (outputJsonEditor) {
             outputJsonEditor.setValue(JSON.stringify(output, null, 2));
         }
+    }
+    
+    if (onlyValidJsonToggle) {
+        onlyValidJsonToggle.addEventListener('change', updateOutputJson);
     }
 
     function buildFinalJson(fields) {
