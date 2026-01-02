@@ -21,6 +21,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const useFormContainer = document.getElementById('useFormContainer');
     const jsonOutputPreviewEl = document.getElementById('jsonOutputPreview');
     const copyJsonBtn = document.getElementById('copyJsonBtn');
+    
+    // Use Mode Actions
+    const shareBtn = document.getElementById('shareBtn');
+    const openChatGptBtn = document.getElementById('openChatGptBtn');
+    const openGeminiBtn = document.getElementById('openGeminiBtn');
 
     let masterJsonEditor = null;
     let outputJsonEditor = null;
@@ -95,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
             group: 'nested', // Allow dragging between lists
             animation: 150,
             handle: '.drag-handle',
-            draggable: '.json-block, .json-section',
+            draggable: '.json-block-wrapper, .json-section',
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
             fallbackOnBody: true,
@@ -180,7 +185,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const fields = [];
         // Get direct children only
         const children = Array.from(container.children).filter(el => 
-            el.classList.contains('json-block') || el.classList.contains('json-section')
+            el.classList.contains('json-block-wrapper') || el.classList.contains('json-section')
         );
         
         children.forEach(el => {
@@ -213,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ===== RENDER EDIT MODE =====
     function renderEditMode() {
         // Clear container (except empty state)
-        const blocks = jsonBlocksContainer.querySelectorAll('.json-block, .json-section');
+        const blocks = jsonBlocksContainer.querySelectorAll('.json-block-wrapper, .json-section');
         blocks.forEach(block => block.remove());
 
         // Render fields
@@ -238,42 +243,110 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function createKeyValueElement(field) {
+        // Container for the whole block (the sortable item)
+        const wrapper = document.createElement('div');
+        wrapper.className = 'json-block-wrapper mb-2';
+        wrapper.dataset.id = field.id;
+        
+        // Main block with border and background
         const div = document.createElement('div');
-        div.className = 'json-block';
-        div.dataset.id = field.id;
-        div.dataset.type = 'keyvalue';
+        div.className = 'json-block d-flex flex-column p-2 bg-light border rounded';
+        
+        // Row for inputs
+        const inputRow = document.createElement('div');
+        inputRow.className = 'd-flex align-items-start gap-2 w-100';
 
-        div.innerHTML = `
-            <span class="drag-handle" title="Drag to reorder">&#9776;</span>
-            <input type="text" class="form-control form-control-sm block-key" placeholder="Key" value="${escapeHtml(field.key || '')}">
-            <select class="form-select form-select-sm block-type">
-                <option value="text" ${field.type === 'text' ? 'selected' : ''}>Text</option>
-            </select>
-            <input type="text" class="form-control form-control-sm block-value" placeholder="Default value" value="${escapeHtml(field.defaultValue || '')}">
-            <button type="button" class="btn-delete" title="Delete">&times;</button>
+        // Settings panel (inside the main block)
+        const settingsDiv = document.createElement('div');
+        settingsDiv.className = 'json-block-settings p-2 mt-2 border-top bg-white rounded d-none w-100';
+        settingsDiv.innerHTML = `
+            <div class="row g-2">
+                <div class="col-md-6">
+                    <label class="form-label small mb-1">Min Length</label>
+                    <input type="number" class="form-control form-control-sm setting-min-length" value="${field.validation?.minLength || ''}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small mb-1">Max Length</label>
+                    <input type="number" class="form-control form-control-sm setting-max-length" value="${field.validation?.maxLength || ''}">
+                </div>
+            </div>
         `;
 
-        // Event listeners
-        div.querySelector('.block-key').addEventListener('input', (e) => {
-            updateFieldInMasterJson(field.id, 'key', e.target.value);
-            validateDuplicateKeys();
+        function renderMainRow() {
+            // Determine input element based on type
+            let valueInputHtml = '';
+            if (field.type === 'textarea') {
+                valueInputHtml = `<textarea class="form-control form-control-sm block-value" placeholder="Default value" rows="2" style="min-height: 80px;">${escapeHtml(field.defaultValue || '')}</textarea>`;
+            } else {
+                valueInputHtml = `<input type="text" class="form-control form-control-sm block-value" placeholder="Default value" value="${escapeHtml(field.defaultValue || '')}">`;
+            }
+
+            inputRow.innerHTML = `
+                <span class="drag-handle pt-1" title="Drag to reorder" style="cursor: grab; opacity: 0.5;">&#9776;</span>
+                <input type="text" class="form-control form-control-sm block-key" style="flex: 0 0 200px; font-weight: 500;" placeholder="Key" value="${escapeHtml(field.key || '')}">
+                <select class="form-select form-select-sm block-type" style="flex: 0 0 120px;">
+                    <option value="text" ${field.type === 'text' ? 'selected' : ''}>Short Text</option>
+                    <option value="textarea" ${field.type === 'textarea' ? 'selected' : ''}>Long Text</option>
+                </select>
+                <div class="flex-grow-1 value-container">
+                    ${valueInputHtml}
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-secondary btn-settings" title="Settings">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
+                        <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
+                        <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.21l.149.324a.876.876 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.21 2.54l.324-.149a.876.876 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.21l-.149-.324a.876.876 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.21-2.54l-.324.149a.876.876 0 0 1-1.255-.52l-.094-.319zM8 0c-.556 0-1.003.448-1.043 1.002h.013l-.1 1.273c-.106.978-.96 1.693-1.928 1.625l-1.22-.093c-.986-.075-1.76.76-1.605 1.728l.192 1.203c.159.993-.393 1.942-1.296 2.203l-1.15.334c-.958.278-1.135 1.464-.326 2.19l.86 1.03c.69.83.69 2.052-.002 2.88l-.859 1.032c-.808.724-.632 1.91.327 2.188l1.15.334c.903.261 1.455 1.21 1.297 2.204l-.193 1.203c-.155.968.62 1.803 1.605 1.728l1.22-.094c.968-.067 1.822.648 1.928 1.625l.1 1.274C7.042 15.552 7.556 16 8 16s1.003-.448 1.043-1.002h-.013l.1-1.273c.106-.978.96-1.693 1.928-1.625l1.22.093c.986.075 1.76-.76 1.605-1.728l-.192-1.203c-.159-.993.393-1.942 1.296-2.203l1.15-.334c.958-.278 1.135-1.464.326-2.19l-.86-1.03c-.69-.83-.69-2.052.002-2.88l.859-1.032c.808-.724.632-1.91-.327-2.188l-1.15-.334c-.903-.261-1.455-1.21-1.297-2.204l.193-1.203c.155-.968-.62-1.803-1.605-1.728l-1.22.094c-.968.067-1.822-.648-1.928-1.625l-.1-1.274C9.042.448 8.556 0 8 0z"/>
+                    </svg>
+                </button>
+                <button type="button" class="btn btn-delete text-danger bg-transparent border-0 p-1 fs-5 lh-1" title="Delete">&times;</button>
+            `;
+
+            // Bind events for main row
+            inputRow.querySelector('.block-key').addEventListener('input', (e) => {
+                updateFieldInMasterJson(field.id, 'key', e.target.value);
+                validateDuplicateKeys();
+            });
+
+            inputRow.querySelector('.block-type').addEventListener('change', (e) => {
+                const newType = e.target.value;
+                updateFieldInMasterJson(field.id, 'type', newType);
+                // Re-render row to switch input/textarea
+                renderMainRow();
+            });
+
+            inputRow.querySelector('.block-value').addEventListener('input', (e) => {
+                updateFieldInMasterJson(field.id, 'defaultValue', e.target.value);
+            });
+
+            inputRow.querySelector('.btn-delete').addEventListener('click', () => {
+                removeFieldFromMasterJson(field.id);
+                wrapper.remove();
+                updateEmptyState();
+            });
+            
+            inputRow.querySelector('.btn-settings').addEventListener('click', () => {
+                settingsDiv.classList.toggle('d-none');
+            });
+        }
+        
+        // Initial render of main row
+        renderMainRow();
+        
+        // Bind events for settings
+        settingsDiv.querySelector('.setting-min-length').addEventListener('input', (e) => {
+            if (!field.validation) field.validation = {};
+            field.validation.minLength = e.target.value ? parseInt(e.target.value) : undefined;
         });
 
-        div.querySelector('.block-type').addEventListener('change', (e) => {
-            updateFieldInMasterJson(field.id, 'type', e.target.value);
+        settingsDiv.querySelector('.setting-max-length').addEventListener('input', (e) => {
+            if (!field.validation) field.validation = {};
+            field.validation.maxLength = e.target.value ? parseInt(e.target.value) : undefined;
         });
 
-        div.querySelector('.block-value').addEventListener('input', (e) => {
-            updateFieldInMasterJson(field.id, 'defaultValue', e.target.value);
-        });
+        div.appendChild(inputRow);
+        div.appendChild(settingsDiv);
+        wrapper.appendChild(div);
 
-        div.querySelector('.btn-delete').addEventListener('click', () => {
-            removeFieldFromMasterJson(field.id);
-            div.remove();
-            updateEmptyState();
-        });
-
-        return div;
+        return wrapper;
     }
 
     function createSectionElement(field) {
@@ -407,7 +480,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ===== VALIDATION =====
     function validateDuplicateKeys() {
         // Simple validation - mark duplicates
-        const allBlocks = jsonBlocksContainer.querySelectorAll('.json-block, .json-section');
+        const allBlocks = jsonBlocksContainer.querySelectorAll('.json-block-wrapper, .json-section');
         const keyMap = new Map();
 
         allBlocks.forEach(block => {
@@ -431,14 +504,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     const scopeKey = scope + '::' + key;
 
                     if (keyMap.has(scopeKey)) {
-                        block.classList.add('is-invalid');
-                        keyMap.get(scopeKey).classList.add('is-invalid');
+                        // Mark the inner block for wrappers, or the section itself
+                        const target1 = block.querySelector('.json-block') || block;
+                        target1.classList.add('is-invalid');
+                        
+                        const otherBlock = keyMap.get(scopeKey);
+                        const target2 = otherBlock.querySelector('.json-block') || otherBlock;
+                        target2.classList.add('is-invalid');
                     } else {
                         keyMap.set(scopeKey, block);
-                        block.classList.remove('is-invalid');
+                        const target = block.querySelector('.json-block') || block;
+                        target.classList.remove('is-invalid');
                     }
                 } else {
-                    block.classList.remove('is-invalid');
+                    const target = block.querySelector('.json-block') || block;
+                    target.classList.remove('is-invalid');
                 }
             }
         });
@@ -551,11 +631,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 container.appendChild(section);
             } else {
                 const formGroup = document.createElement('div');
-                formGroup.className = 'row mb-2 align-items-center';
+                formGroup.className = 'row mb-2 align-items-center'; // align-items-center good for inputs, maybe align-items-start for textarea
+                
+                let inputHtml = '';
+                if (field.type === 'textarea') {
+                    // Update alignment for textarea
+                    formGroup.className = 'row mb-2 align-items-start'; 
+                    inputHtml = `<textarea class="form-control form-control-sm use-field" data-id="${field.id}" rows="3">${escapeHtml(field.defaultValue || '')}</textarea>`;
+                } else {
+                    inputHtml = `<input type="text" class="form-control form-control-sm use-field" data-id="${field.id}" value="${escapeHtml(field.defaultValue || '')}">`;
+                }
+
                 formGroup.innerHTML = `
                     <label class="col-md-3 col-form-label col-form-label-sm">${escapeHtml(field.key || 'Unnamed')}</label>
                     <div class="col-md-9">
-                        <input type="text" class="form-control form-control-sm use-field" data-id="${field.id}" value="${escapeHtml(field.defaultValue || '')}">
+                        ${inputHtml}
                     </div>
                 `;
                 formGroup.querySelector('.use-field').addEventListener('input', updateOutputJson);
@@ -823,6 +913,77 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // ===== URL STATE MANAGEMENT =====
+    function getUrlParams() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('data');
+    }
+
+    function setUrlParams(data) {
+        const url = new URL(window.location);
+        url.searchParams.set('data', data);
+        window.history.pushState({}, '', url);
+    }
+
+    function loadFromUrl() {
+        const data = getUrlParams();
+        if (data) {
+            try {
+                const jsonStr = atob(data);
+                masterJson = JSON.parse(jsonStr);
+                renderEditMode();
+                
+                // If data is loaded, maybe switch to USE mode or just stay ready
+                // Let's stay in EDIT mode but show it's populated
+            } catch (e) {
+                console.error('Failed to load from URL', e);
+            }
+        }
+    }
+
+    // ===== SHARE & AI ACTIONS =====
+    if (shareBtn) {
+        shareBtn.addEventListener('click', () => {
+            const jsonStr = JSON.stringify(masterJson);
+            const base64 = btoa(jsonStr);
+            setUrlParams(base64);
+            
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                const originalText = shareBtn.textContent;
+                shareBtn.textContent = 'Link Copied!';
+                setTimeout(() => {
+                    shareBtn.textContent = originalText;
+                }, 2000);
+            });
+        });
+    }
+
+    function generateAiPrompt() {
+        const outputJson = buildFinalJson(masterJson.fields);
+        const jsonStr = JSON.stringify(outputJson, null, 2);
+        
+        return `\`\`\`json\n${jsonStr}\n\`\`\``;
+    }
+
+    if (openChatGptBtn) {
+        openChatGptBtn.addEventListener('click', () => {
+            const prompt = generateAiPrompt();
+            const url = `https://chatgpt.com/?q=${encodeURIComponent(prompt)}`;
+            window.open(url, '_blank');
+        });
+    }
+
+    if (openGeminiBtn) {
+        openGeminiBtn.addEventListener('click', () => {
+            const prompt = generateAiPrompt();
+            const url = `https://gemini.google.com/app?text=${encodeURIComponent(prompt)}`;
+            window.open(url, '_blank');
+        });
+    }
+
     // Initialize root sortable on load
     initRootSortable();
+    
+    // Load state from URL if present
+    loadFromUrl();
 });

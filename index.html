@@ -62,21 +62,16 @@
     <main>
         <!-- Header -->
         <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
-            <div class="container-fluid">
+            <div class="container">
                 <button class="navbar-toggler me-2" id="menuToggle" type="button" aria-label="Toggle menu" aria-expanded="false">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <a class="navbar-brand" href="#">JSON Prompt Architect</a>
-                <div class="ms-auto">
-                    <button class="btn btn-primary" id="addJsonButton" type="button" data-bs-toggle="modal" data-bs-target="#jsonPromptModal">
-                        Add JSON
-                    </button>
-                </div>
             </div>
         </nav>
         
         <!-- Content -->
-        <div class="container-fluid mt-3">
+        <div class="container mt-3">
             <!-- Tab Navigation -->
             <ul class="nav nav-tabs" id="modeTabs" role="tablist">
                 <li class="nav-item" role="presentation">
@@ -89,9 +84,9 @@
                         USE MODE
                     </button>
                 </li>
-                <li class="nav-item ms-auto">
-                    <button class="btn btn-outline-secondary btn-sm" id="showMasterJsonBtn" type="button" data-bs-toggle="modal" data-bs-target="#masterJsonModal">
-                        Show Master JSON
+                <li class="nav-item ms-auto d-flex gap-2">
+                    <button class="btn btn-outline-primary btn-sm mb-1" id="shareBtn" type="button">
+                        Share
                     </button>
                 </li>
             </ul>
@@ -100,6 +95,17 @@
             <div class="tab-content" id="modeTabsContent">
                 <!-- EDIT MODE -->
                 <div class="tab-pane fade show active" id="edit-mode" role="tabpanel" aria-labelledby="edit-tab">
+                    
+                    <!-- Edit Mode Toolbar -->
+                    <div class="d-flex justify-content-end gap-2 py-3 border-bottom">
+                         <button class="btn btn-primary btn-sm" id="addJsonButton" type="button" data-bs-toggle="modal" data-bs-target="#jsonPromptModal">
+                            Add JSON
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" id="showMasterJsonBtn" type="button" data-bs-toggle="modal" data-bs-target="#masterJsonModal">
+                            Show Master JSON
+                        </button>
+                    </div>
+
                     <div class="edit-mode-container py-3">
                         <!-- Visual editor blocks will be rendered here -->
                         <div id="jsonBlocksContainer">
@@ -123,6 +129,7 @@
 
                 <!-- USE MODE -->
                 <div class="tab-pane fade" id="use-mode" role="tabpanel" aria-labelledby="use-tab">
+                    
                     <div class="use-mode-container py-3">
                         <div class="row">
                             <!-- Form -->
@@ -141,9 +148,17 @@
                                 <div class="card">
                                     <div class="card-header d-flex justify-content-between align-items-center">
                                         <h6 class="mb-0">Output JSON</h6>
-                                        <button type="button" class="btn btn-outline-primary btn-sm" id="copyJsonBtn">
-                                            Copy JSON
-                                        </button>
+                                        <div class="d-flex gap-2">
+                                            <button class="btn btn-outline-success btn-sm" id="openChatGptBtn" type="button" title="Open in ChatGPT">
+                                                ChatGPT
+                                            </button>
+                                            <button class="btn btn-outline-info btn-sm" id="openGeminiBtn" type="button" title="Open in Gemini">
+                                                Gemini
+                                            </button>
+                                            <button type="button" class="btn btn-outline-primary btn-sm" id="copyJsonBtn">
+                                                Copy
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="card-body">
                                         <div id="jsonOutputPreview"></div>

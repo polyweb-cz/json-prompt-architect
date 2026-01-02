@@ -84,7 +84,8 @@ footer {
 
 /* JSON Output Preview in USE MODE */
 #jsonOutputPreview .CodeMirror {
-    height: 300px;
+    height: calc(100vh - 250px);
+    min-height: 300px;
     border: 1px solid #ced4da;
     border-radius: 0.375rem;
     font-size: 13px;
@@ -92,7 +93,7 @@ footer {
 
 /* ===== EDIT MODE - Visual Editor ===== */
 .edit-mode-container {
-    max-width: 900px;
+    /* max-width removed to fill container */
 }
 
 /* JSON Block - Key/Value */
