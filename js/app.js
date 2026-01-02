@@ -85,21 +85,32 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ===== SORTABLE INITIALIZATION =====
-    function initSortable(container, fieldsArray) {
-        if (typeof Sortable === 'undefined') return;
+    let rootSortable = null;
 
-        new Sortable(container, {
+    function initSortable(container, fieldsArray) {
+        if (typeof Sortable === 'undefined') return null;
+
+        return new Sortable(container, {
             animation: 150,
             handle: '.drag-handle',
+            draggable: '.json-block, .json-section',
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
-            filter: '.empty-state, .block-actions',
             onEnd: function(evt) {
+                if (evt.oldIndex === evt.newIndex) return;
                 // Reorder in masterJson
                 const movedItem = fieldsArray.splice(evt.oldIndex, 1)[0];
                 fieldsArray.splice(evt.newIndex, 0, movedItem);
             }
         });
+    }
+
+    function initRootSortable() {
+        if (rootSortable) {
+            rootSortable.destroy();
+            rootSortable = null;
+        }
+        rootSortable = initSortable(jsonBlocksContainer, masterJson.fields);
     }
 
     // ===== RENDER EDIT MODE =====
@@ -118,7 +129,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updateEmptyState();
 
         // Initialize sortable for root level
-        initSortable(jsonBlocksContainer, masterJson.fields);
+        initRootSortable();
     }
 
     function createBlockElement(field) {
@@ -663,4 +674,7 @@ document.addEventListener('DOMContentLoaded', function() {
             jsonEditor.setValue(formatted);
         });
     }
+
+    // Initialize root sortable on load
+    initRootSortable();
 });
