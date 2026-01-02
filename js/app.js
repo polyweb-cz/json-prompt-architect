@@ -358,6 +358,168 @@ document.addEventListener('DOMContentLoaded', function() {
         return ['text', 'textarea'].includes(type);
     }
 
+    function needsSingleDefault(type) {
+        return ['select', 'radio'].includes(type);
+    }
+
+    /**
+     * Renders the options editor for select/multiselect/radio/checkboxList types
+     * @param {Object} field - The field object
+     * @param {HTMLElement} container - The container to render into
+     */
+    function renderOptionsEditor(field, container) {
+        // Ensure options array exists
+        if (!field.options || field.options.length === 0) {
+            field.options = ['Option 1'];
+            updateFieldInMasterJson(field.id, 'options', field.options);
+        }
+
+        const isSingleDefault = needsSingleDefault(field.type);
+        const inputType = isSingleDefault ? 'radio' : 'checkbox';
+        const radioName = `default_${field.id}`;
+
+        // Clear container
+        container.innerHTML = '';
+
+        // Create options list
+        const optionsList = document.createElement('div');
+        optionsList.className = 'options-list';
+
+        // Get current defaults
+        let currentDefaults = [];
+        if (field.defaultValue) {
+            currentDefaults = Array.isArray(field.defaultValue) ? field.defaultValue : [field.defaultValue];
+        }
+
+        // Render each option
+        field.options.forEach((opt, index) => {
+            const row = document.createElement('div');
+            row.className = 'option-row d-flex align-items-center gap-1 mb-1';
+            row.dataset.index = index;
+
+            const isChecked = currentDefaults.includes(opt);
+            const canDelete = field.options.length > 1;
+
+            row.innerHTML = `
+                <input type="${inputType}" class="form-check-input option-default mt-0"
+                       ${isSingleDefault ? `name="${radioName}"` : ''}
+                       ${isChecked ? 'checked' : ''}
+                       value="${index}"
+                       title="Set as default">
+                <input type="text" class="form-control form-control-sm option-value flex-grow-1"
+                       value="${escapeHtml(opt)}" placeholder="Option value">
+                <span class="option-drag-handle px-1" style="cursor: grab; opacity: 0.5;" title="Drag to reorder">⋮⋮</span>
+                <button type="button" class="btn btn-sm btn-option-delete text-danger border-0 p-0 ${canDelete ? '' : 'invisible'}"
+                        title="Remove option">&times;</button>
+            `;
+
+            optionsList.appendChild(row);
+        });
+
+        container.appendChild(optionsList);
+
+        // Add option button
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'btn btn-sm btn-link text-decoration-none p-0 mt-1';
+        addBtn.textContent = '+ Add option';
+        container.appendChild(addBtn);
+
+        // Initialize SortableJS for drag & drop
+        if (typeof Sortable !== 'undefined') {
+            new Sortable(optionsList, {
+                animation: 150,
+                handle: '.option-drag-handle',
+                ghostClass: 'bg-primary-subtle',
+                onEnd: (evt) => {
+                    // Reorder options array
+                    const movedItem = field.options.splice(evt.oldIndex, 1)[0];
+                    field.options.splice(evt.newIndex, 0, movedItem);
+                    updateFieldInMasterJson(field.id, 'options', field.options);
+                    // Re-render to update indices and delete button visibility
+                    renderOptionsEditor(field, container);
+                }
+            });
+        }
+
+        // Event: Add new option
+        addBtn.addEventListener('click', () => {
+            const newOption = `Option ${field.options.length + 1}`;
+            field.options.push(newOption);
+            updateFieldInMasterJson(field.id, 'options', field.options);
+            renderOptionsEditor(field, container);
+        });
+
+        // Event: Delete option
+        optionsList.querySelectorAll('.btn-option-delete').forEach((btn, index) => {
+            btn.addEventListener('click', () => {
+                if (field.options.length > 1) {
+                    const removedOpt = field.options[index];
+                    field.options.splice(index, 1);
+                    updateFieldInMasterJson(field.id, 'options', field.options);
+
+                    // Update defaultValue if removed option was default
+                    if (isSingleDefault && field.defaultValue === removedOpt) {
+                        field.defaultValue = field.options[0] || '';
+                        updateFieldInMasterJson(field.id, 'defaultValue', field.defaultValue);
+                    } else if (!isSingleDefault && Array.isArray(field.defaultValue)) {
+                        field.defaultValue = field.defaultValue.filter(v => v !== removedOpt);
+                        updateFieldInMasterJson(field.id, 'defaultValue', field.defaultValue);
+                    }
+
+                    renderOptionsEditor(field, container);
+                }
+            });
+        });
+
+        // Event: Option value change
+        optionsList.querySelectorAll('.option-value').forEach((input, index) => {
+            input.addEventListener('input', (e) => {
+                const oldValue = field.options[index];
+                const newValue = e.target.value;
+                field.options[index] = newValue;
+                updateFieldInMasterJson(field.id, 'options', field.options);
+
+                // Update defaultValue if this option was default
+                if (isSingleDefault && field.defaultValue === oldValue) {
+                    field.defaultValue = newValue;
+                    updateFieldInMasterJson(field.id, 'defaultValue', field.defaultValue);
+                } else if (!isSingleDefault && Array.isArray(field.defaultValue)) {
+                    const idx = field.defaultValue.indexOf(oldValue);
+                    if (idx !== -1) {
+                        field.defaultValue[idx] = newValue;
+                        updateFieldInMasterJson(field.id, 'defaultValue', field.defaultValue);
+                    }
+                }
+            });
+        });
+
+        // Event: Default selection change
+        optionsList.querySelectorAll('.option-default').forEach((input, index) => {
+            input.addEventListener('change', () => {
+                const optionValue = field.options[index];
+
+                if (isSingleDefault) {
+                    // Radio - single default
+                    field.defaultValue = optionValue;
+                } else {
+                    // Checkbox - multiple defaults
+                    if (!Array.isArray(field.defaultValue)) {
+                        field.defaultValue = [];
+                    }
+                    if (input.checked) {
+                        if (!field.defaultValue.includes(optionValue)) {
+                            field.defaultValue.push(optionValue);
+                        }
+                    } else {
+                        field.defaultValue = field.defaultValue.filter(v => v !== optionValue);
+                    }
+                }
+                updateFieldInMasterJson(field.id, 'defaultValue', field.defaultValue);
+            });
+        });
+    }
+
     function createKeyValueElement(field) {
         // Container for the whole block (the sortable item)
         const wrapper = document.createElement('div');
@@ -375,14 +537,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Settings panel (inside the main block)
         const settingsDiv = document.createElement('div');
         settingsDiv.className = 'json-block-settings p-2 mt-2 border-top bg-white rounded d-none w-100';
+        // Render settings HTML
         settingsDiv.innerHTML = `
             <div class="row g-2">
-                <!-- Options for select/radio/etc -->
-                <div class="col-12 options-container d-none">
-                    <label class="form-label small mb-1">Options (one per line)</label>
-                    <textarea class="form-control form-control-sm setting-options" rows="3">${(field.options || []).join('\n')}</textarea>
-                </div>
-                
                 <!-- Length Validation -->
                 <div class="col-md-6 length-validation">
                     <label class="form-label small mb-1">Min Length</label>
@@ -407,18 +564,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         function renderMainRow() {
             // Update UI based on type
-            const showOptions = needsOptions(field.type);
             const showLength = needsLengthValidation(field.type);
             const showCount = needsCountValidation(field.type);
 
-            const optionsContainer = settingsDiv.querySelector('.options-container');
             const lengthValidation = settingsDiv.querySelectorAll('.length-validation');
             const countValidation = settingsDiv.querySelectorAll('.count-validation');
-            
-            if (optionsContainer) {
-                if (showOptions) optionsContainer.classList.remove('d-none');
-                else optionsContainer.classList.add('d-none');
-            }
 
             if (lengthValidation.length) {
                 if (showLength) lengthValidation.forEach(el => el.classList.remove('d-none'));
@@ -432,8 +582,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Determine input element based on type
             let valueInputHtml = '';
-            if (field.type === 'textarea') {
+            const showOptionsEditor = needsOptions(field.type);
+
+            if (showOptionsEditor) {
+                // For select/multiselect/radio/checkboxList - will be populated by renderOptionsEditor()
+                valueInputHtml = '<div class="options-editor-container"></div>';
+            } else if (field.type === 'textarea') {
                 valueInputHtml = `<textarea class="form-control form-control-sm block-value" placeholder="Default value" rows="2" style="min-height: 80px;">${escapeHtml(field.defaultValue || '')}</textarea>`;
+            } else if (field.type === 'checkbox') {
+                // Single checkbox - default value is true/false
+                const isChecked = field.defaultValue === true || field.defaultValue === 'true';
+                valueInputHtml = `
+                    <div class="form-check pt-1">
+                        <input type="checkbox" class="form-check-input block-value-checkbox" ${isChecked ? 'checked' : ''}>
+                        <label class="form-check-label small text-muted">Default: checked</label>
+                    </div>`;
             } else {
                 valueInputHtml = `<input type="text" class="form-control form-control-sm block-value" placeholder="Default value" value="${escapeHtml(field.defaultValue || '')}">`;
             }
@@ -498,13 +661,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 // So I need to update the inputs in settingsDiv.
                 const minLenInput = settingsDiv.querySelector('.setting-min-length');
                 const maxLenInput = settingsDiv.querySelector('.setting-max-length');
+                const minCountInput = settingsDiv.querySelector('.setting-min-count');
+                const maxCountInput = settingsDiv.querySelector('.setting-max-count');
                 if (minLenInput) minLenInput.value = field.validation.minLength ?? '';
                 if (maxLenInput) maxLenInput.value = field.validation.maxLength ?? '';
+                if (minCountInput) minCountInput.value = field.validation.minCount ?? '';
+                if (maxCountInput) maxCountInput.value = field.validation.maxCount ?? '';
+
+                // Initialize options array if switching to options type
+                if (needsOptions(newType) && (!field.options || field.options.length === 0)) {
+                    field.options = ['Option 1'];
+                    updateFieldInMasterJson(field.id, 'options', field.options);
+                }
             });
 
-            inputRow.querySelector('.block-value').addEventListener('input', (e) => {
-                updateFieldInMasterJson(field.id, 'defaultValue', e.target.value);
-            });
+            // Bind value input events based on type
+            if (showOptionsEditor) {
+                // Render options editor
+                const optionsContainer = inputRow.querySelector('.options-editor-container');
+                if (optionsContainer) {
+                    renderOptionsEditor(field, optionsContainer);
+                }
+            } else if (field.type === 'checkbox') {
+                // Single checkbox
+                const checkboxInput = inputRow.querySelector('.block-value-checkbox');
+                if (checkboxInput) {
+                    checkboxInput.addEventListener('change', (e) => {
+                        updateFieldInMasterJson(field.id, 'defaultValue', e.target.checked);
+                    });
+                }
+            } else {
+                // Text/textarea
+                const valueInput = inputRow.querySelector('.block-value');
+                if (valueInput) {
+                    valueInput.addEventListener('input', (e) => {
+                        updateFieldInMasterJson(field.id, 'defaultValue', e.target.value);
+                    });
+                }
+            }
 
             inputRow.querySelector('.btn-delete').addEventListener('click', () => {
                 removeFieldFromMasterJson(field.id);
@@ -539,12 +733,6 @@ document.addEventListener('DOMContentLoaded', function() {
         settingsDiv.querySelector('.setting-max-count').addEventListener('input', (e) => {
             if (!field.validation) field.validation = {};
             field.validation.maxCount = e.target.value ? parseInt(e.target.value) : undefined;
-        });
-        
-        settingsDiv.querySelector('.setting-options').addEventListener('input', (e) => {
-            // Split by newline and filter empty
-            const options = e.target.value.split('\n').map(o => o.trim()).filter(o => o);
-            updateFieldInMasterJson(field.id, 'options', options);
         });
 
         div.appendChild(inputRow);
@@ -806,7 +994,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (field.type === 'section') {
                 const section = document.createElement('div');
                 section.className = 'card mb-3';
-                const isCollapsed = field.collapsed === true; // Default to false if undefined
+                const isCollapsed = field.collapsed === true;
                 
                 section.innerHTML = `
                     <div class="card-header py-2 d-flex align-items-center user-select-none" 
@@ -827,19 +1015,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const collapseEl = section.querySelector('.collapse');
                 const chevron = section.querySelector('.bi-chevron-down');
-                
-                // Add event listeners to rotate chevron
-                collapseEl.addEventListener('show.bs.collapse', () => {
-                    chevron.style.transform = 'rotate(0deg)';
-                });
-                collapseEl.addEventListener('hide.bs.collapse', () => {
-                    chevron.style.transform = 'rotate(-90deg)';
-                });
-                
-                // Set initial rotation
-                if (isCollapsed) {
-                    chevron.style.transform = 'rotate(-90deg)';
-                }
+                collapseEl.addEventListener('show.bs.collapse', () => chevron.style.transform = 'rotate(0deg)');
+                collapseEl.addEventListener('hide.bs.collapse', () => chevron.style.transform = 'rotate(-90deg)');
+                if (isCollapsed) chevron.style.transform = 'rotate(-90deg)';
 
                 const body = section.querySelector('.card-body');
                 if (field.children && field.children.length > 0) {
@@ -848,44 +1026,97 @@ document.addEventListener('DOMContentLoaded', function() {
                 container.appendChild(section);
             } else {
                 const formGroup = document.createElement('div');
-                formGroup.className = 'row mb-2 align-items-center';
+                formGroup.className = 'row mb-3 align-items-start';
                 
-                // Validation attributes
-                const minLen = field.validation?.minLength;
-                const maxLen = field.validation?.maxLength;
-                const attrs = [];
-                if (minLen !== undefined && minLen !== null && minLen !== '') attrs.push(`minlength="${minLen}"`);
-                if (maxLen !== undefined && maxLen !== null && maxLen !== '') attrs.push(`maxlength="${maxLen}"`);
-                const attrsStr = attrs.join(' ');
-
+                const label = document.createElement('label');
+                label.className = 'col-md-3 col-form-label col-form-label-sm';
+                label.textContent = field.key || 'Unnamed';
+                
+                const inputCol = document.createElement('div');
+                inputCol.className = 'col-md-9 position-relative';
+                
                 let inputHtml = '';
-                if (field.type === 'textarea') {
-                    formGroup.className = 'row mb-2 align-items-start'; 
-                    inputHtml = `<textarea class="form-control form-control-sm use-field" data-id="${field.id}" rows="3" ${attrsStr}>${escapeHtml(field.defaultValue || '')}</textarea>`;
-                } else {
-                    inputHtml = `<input type="text" class="form-control form-control-sm use-field" data-id="${field.id}" value="${escapeHtml(field.defaultValue || '')}" ${attrsStr}>`;
+                const options = field.options || [];
+                
+                switch(field.type) {
+                    case 'textarea':
+                        inputHtml = `<textarea class="form-control form-control-sm use-field" data-id="${field.id}" rows="3">${escapeHtml(field.defaultValue || '')}</textarea>`;
+                        break;
+                    case 'select':
+                        inputHtml = `<select class="form-select form-select-sm use-field" data-id="${field.id}">
+                            <option value="">-- Select option --</option>
+                            ${options.map(opt => `<option value="${escapeHtml(opt)}" ${field.defaultValue === opt ? 'selected' : ''}>${escapeHtml(opt)}</option>`).join('')}
+                        </select>`;
+                        break;
+                    case 'multiselect':
+                        inputHtml = `<select class="form-select form-select-sm use-field choices-init" data-id="${field.id}" multiple>
+                            ${options.map(opt => `<option value="${escapeHtml(opt)}">${escapeHtml(opt)}</option>`).join('')}
+                        </select>`;
+                        break;
+                    case 'checkbox':
+                        inputHtml = `
+                            <div class="form-check pt-1">
+                                <input class="form-check-input use-field" type="checkbox" data-id="${field.id}" id="check_${field.id}" ${field.defaultValue === 'true' || field.defaultValue === true ? 'checked' : ''}>
+                                <label class="form-check-label small" for="check_${field.id}">Enabled</label>
+                            </div>`;
+                        break;
+                    case 'radio':
+                        inputHtml = `<div class="pt-1">
+                            ${options.map((opt, i) => `
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input use-field" type="radio" name="radio_${field.id}" data-id="${field.id}" id="radio_${field.id}_${i}" value="${escapeHtml(opt)}" ${field.defaultValue === opt ? 'checked' : ''}>
+                                    <label class="form-check-label small" for="radio_${field.id}_${i}">${escapeHtml(opt)}</label>
+                                </div>
+                            `).join('')}
+                        </div>`;
+                        break;
+                    case 'checkboxList':
+                        inputHtml = `<div class="pt-1">
+                            ${options.map((opt, i) => `
+                                <div class="form-check">
+                                    <input class="form-check-input use-field" type="checkbox" data-id="${field.id}" id="checkList_${field.id}_${i}" value="${escapeHtml(opt)}">
+                                    <label class="form-check-label small" for="checkList_${field.id}_${i}">${escapeHtml(opt)}</label>
+                                </div>
+                            `).join('')}
+                        </div>`;
+                        break;
+                    default: // text
+                        inputHtml = `<input type="text" class="form-control form-control-sm use-field" data-id="${field.id}" value="${escapeHtml(field.defaultValue || '')}">`;
                 }
                 
-                // Add invalid feedback container
-                inputHtml += `<div class="invalid-feedback"></div>`;
-
-                formGroup.innerHTML = `
-                    <label class="col-md-3 col-form-label col-form-label-sm">${escapeHtml(field.key || 'Unnamed')}</label>
-                    <div class="col-md-9 position-relative">
-                        ${inputHtml}
-                    </div>
-                `;
-                
-                const inputEl = formGroup.querySelector('.use-field');
-                inputEl.addEventListener('input', (e) => {
-                    updateOutputJson();
-                    validateUseField(e.target, field);
-                });
-                
-                // Initial validation to show errors for default values (e.g. from URL)
-                validateUseField(inputEl, field);
-                
+                inputCol.innerHTML = inputHtml + `<div class="invalid-feedback"></div>`;
+                formGroup.appendChild(label);
+                formGroup.appendChild(inputCol);
                 container.appendChild(formGroup);
+                
+                // Initialize Choices.js for multiselect
+                if (field.type === 'multiselect' && typeof Choices !== 'undefined') {
+                    const el = inputCol.querySelector('.choices-init');
+                    new Choices(el, {
+                        removeItemButton: true,
+                        placeholderValue: 'Select options',
+                        searchPlaceholderValue: 'Search...'
+                    });
+                    el.addEventListener('change', () => {
+                        updateOutputJson();
+                        validateUseField(el, field);
+                    });
+                }
+
+                // Add event listeners to all inputs in this group
+                const inputs = inputCol.querySelectorAll('.use-field');
+                inputs.forEach(input => {
+                    input.addEventListener('input', () => {
+                        updateOutputJson();
+                        validateUseField(input, field);
+                    });
+                    input.addEventListener('change', () => {
+                        updateOutputJson();
+                        validateUseField(input, field);
+                    });
+                    // Initial validation
+                    validateUseField(input, field);
+                });
             }
         });
     }
@@ -898,52 +1129,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return `"${field.key}": Maximum length is ${field.validation.maxLength} characters (current: ${value.length}).`;
         }
         return null;
-    }
-
-    function validateUseField(input, field) {
-        const val = input.value;
-        const error = checkFieldValidity(field, val);
-        // Strip field key for inline error
-        const inlineError = error ? error.substring(error.indexOf(':') + 2) : '';
-        
-        if (error) {
-            input.classList.add('is-invalid');
-            let next = input.nextElementSibling;
-            while(next) {
-                if (next.classList.contains('invalid-feedback')) {
-                    next.textContent = inlineError;
-                    break;
-                }
-                next = next.nextElementSibling;
-            }
-        } else {
-            input.classList.remove('is-invalid');
-        }
-    }
-
-    function validateAllUseFields(fields = masterJson.fields) {
-        let isValid = true;
-        let errors = [];
-        
-        function recurse(currentFields) {
-            currentFields.forEach(field => {
-                if (field.type === 'section') {
-                    if (field.children) recurse(field.children);
-                } else {
-                    const input = document.querySelector(`.use-field[data-id="${field.id}"]`);
-                    if (input) {
-                        const error = checkFieldValidity(field, input.value);
-                        if (error) {
-                            isValid = false;
-                            errors.push(error);
-                        }
-                    }
-                }
-            });
-        }
-        
-        recurse(fields);
-        return { isValid, errors };
     }
 
     function updateOutputJson() {
@@ -978,9 +1163,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             } else {
                 if (field.key) {
-                    // Get current value from USE form input
-                    const input = document.querySelector(`.use-field[data-id="${field.id}"]`);
-                    const value = input ? input.value : field.defaultValue;
+                    let value = field.defaultValue;
+                    
+                    if (field.type === 'checkbox') {
+                        const input = document.querySelector(`.use-field[data-id="${field.id}"]`);
+                        if (input) value = input.checked;
+                    } else if (field.type === 'radio') {
+                        const checked = document.querySelector(`.use-field[data-id="${field.id}"]:checked`);
+                        if (checked) value = checked.value;
+                    } else if (field.type === 'checkboxList') {
+                        const checked = document.querySelectorAll(`.use-field[data-id="${field.id}"]:checked`);
+                        if (checked.length > 0 || document.querySelector(`.use-field[data-id="${field.id}"]`)) {
+                             value = Array.from(checked).map(el => el.value);
+                        }
+                    } else if (field.type === 'multiselect') {
+                         const select = document.querySelector(`.use-field[data-id="${field.id}"]`);
+                         if (select) {
+                             value = Array.from(select.selectedOptions).map(opt => opt.value);
+                         }
+                    } else {
+                        // text, textarea, select
+                        const input = document.querySelector(`.use-field[data-id="${field.id}"]`);
+                        if (input) value = input.value;
+                    }
+                    
                     result[field.key] = value;
                 }
             }
@@ -1286,30 +1492,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const url = `https://gemini.google.com/app?text=${encodeURIComponent(prompt)}`;
             window.open(url, '_blank');
         });
-    }
-
-    function needsOptions(type) {
-        return ['select', 'multiselect', 'radio', 'checkboxList'].includes(type);
-    }
-
-    function needsCountValidation(type) {
-        return ['multiselect', 'checkboxList'].includes(type);
-    }
-
-    function needsLengthValidation(type) {
-        return ['text', 'textarea'].includes(type);
-    }
-
-    function needsOptions(type) {
-        return ['select', 'multiselect', 'radio', 'checkboxList'].includes(type);
-    }
-
-    function needsCountValidation(type) {
-        return ['multiselect', 'checkboxList'].includes(type);
-    }
-
-    function needsLengthValidation(type) {
-        return ['text', 'textarea'].includes(type);
     }
 
     // Initialize root sortable on load
