@@ -1,11 +1,19 @@
 // Initialize Choices.js on the select element
 document.addEventListener('DOMContentLoaded', function() {
-    const choicesSelect = new Choices('#choicesSelect', {
-        removeItemButton: true,
-        searchEnabled: true,
-        placeholder: true,
-        placeholderValue: 'Select programming languages'
-    });
+    // Initialize Choices.js with error handling
+    try {
+        const choicesElement = document.getElementById('choicesSelect');
+        if (choicesElement && typeof Choices !== 'undefined') {
+            const choicesSelect = new Choices('#choicesSelect', {
+                removeItemButton: true,
+                searchEnabled: true,
+                placeholder: true,
+                placeholderValue: 'Select programming languages'
+            });
+        }
+    } catch (error) {
+        console.error('Failed to initialize Choices.js:', error);
+    }
     
     // Sidebar toggle functionality
     const menuToggle = document.getElementById('menuToggle');
