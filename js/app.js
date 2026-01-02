@@ -346,6 +346,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function needsOptions(type) {
+        return ['select', 'multiselect', 'radio', 'checkboxList'].includes(type);
+    }
+
+    function needsCountValidation(type) {
+        return ['multiselect', 'checkboxList'].includes(type);
+    }
+
+    function needsLengthValidation(type) {
+        return ['text', 'textarea'].includes(type);
+    }
+
     function createKeyValueElement(field) {
         // Container for the whole block (the sortable item)
         const wrapper = document.createElement('div');
@@ -365,18 +377,59 @@ document.addEventListener('DOMContentLoaded', function() {
         settingsDiv.className = 'json-block-settings p-2 mt-2 border-top bg-white rounded d-none w-100';
         settingsDiv.innerHTML = `
             <div class="row g-2">
-                <div class="col-md-6">
-                    <label class="form-label small mb-1">Min Length</label>
-                    <input type="number" class="form-control form-control-sm setting-min-length" value="${field.validation?.minLength || ''}">
+                <!-- Options for select/radio/etc -->
+                <div class="col-12 options-container d-none">
+                    <label class="form-label small mb-1">Options (one per line)</label>
+                    <textarea class="form-control form-control-sm setting-options" rows="3">${(field.options || []).join('\n')}</textarea>
                 </div>
-                <div class="col-md-6">
+                
+                <!-- Length Validation -->
+                <div class="col-md-6 length-validation">
+                    <label class="form-label small mb-1">Min Length</label>
+                    <input type="number" class="form-control form-control-sm setting-min-length" value="${field.validation?.minLength ?? ''}">
+                </div>
+                <div class="col-md-6 length-validation">
                     <label class="form-label small mb-1">Max Length</label>
-                    <input type="number" class="form-control form-control-sm setting-max-length" value="${field.validation?.maxLength || ''}">
+                    <input type="number" class="form-control form-control-sm setting-max-length" value="${field.validation?.maxLength ?? ''}">
+                </div>
+
+                <!-- Count Validation -->
+                <div class="col-md-6 count-validation d-none">
+                    <label class="form-label small mb-1">Min Count</label>
+                    <input type="number" class="form-control form-control-sm setting-min-count" value="${field.validation?.minCount ?? ''}">
+                </div>
+                <div class="col-md-6 count-validation d-none">
+                    <label class="form-label small mb-1">Max Count</label>
+                    <input type="number" class="form-control form-control-sm setting-max-count" value="${field.validation?.maxCount ?? ''}">
                 </div>
             </div>
         `;
 
         function renderMainRow() {
+            // Update UI based on type
+            const showOptions = needsOptions(field.type);
+            const showLength = needsLengthValidation(field.type);
+            const showCount = needsCountValidation(field.type);
+
+            const optionsContainer = settingsDiv.querySelector('.options-container');
+            const lengthValidation = settingsDiv.querySelectorAll('.length-validation');
+            const countValidation = settingsDiv.querySelectorAll('.count-validation');
+            
+            if (optionsContainer) {
+                if (showOptions) optionsContainer.classList.remove('d-none');
+                else optionsContainer.classList.add('d-none');
+            }
+
+            if (lengthValidation.length) {
+                if (showLength) lengthValidation.forEach(el => el.classList.remove('d-none'));
+                else lengthValidation.forEach(el => el.classList.add('d-none'));
+            }
+
+            if (countValidation.length) {
+                if (showCount) countValidation.forEach(el => el.classList.remove('d-none'));
+                else countValidation.forEach(el => el.classList.add('d-none'));
+            }
+
             // Determine input element based on type
             let valueInputHtml = '';
             if (field.type === 'textarea') {
@@ -391,6 +444,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 <select class="form-select form-select-sm block-type" style="flex: 0 0 120px;">
                     <option value="text" ${field.type === 'text' ? 'selected' : ''}>Short Text</option>
                     <option value="textarea" ${field.type === 'textarea' ? 'selected' : ''}>Long Text</option>
+                    <option value="select" ${field.type === 'select' ? 'selected' : ''}>Select</option>
+                    <option value="multiselect" ${field.type === 'multiselect' ? 'selected' : ''}>Multi Select</option>
+                    <option value="checkbox" ${field.type === 'checkbox' ? 'selected' : ''}>Checkbox</option>
+                    <option value="radio" ${field.type === 'radio' ? 'selected' : ''}>Radio Group</option>
+                    <option value="checkboxList" ${field.type === 'checkboxList' ? 'selected' : ''}>Checkbox List</option>
                 </select>
                 <div class="flex-grow-1 value-container">
                     ${valueInputHtml}
@@ -416,10 +474,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Update default validation based on type
                 if (!field.validation) field.validation = {};
+                
+                // Reset/Set defaults
                 if (newType === 'text') {
                     field.validation.maxLength = 64;
+                    delete field.validation.minCount;
+                    delete field.validation.maxCount;
                 } else if (newType === 'textarea') {
                     field.validation.maxLength = 255;
+                    delete field.validation.minCount;
+                    delete field.validation.maxCount;
+                } else {
+                    // Remove length validation for others
+                    delete field.validation.minLength;
+                    delete field.validation.maxLength;
                 }
                 
                 // Re-render row to switch input/textarea and update settings
@@ -461,6 +529,22 @@ document.addEventListener('DOMContentLoaded', function() {
         settingsDiv.querySelector('.setting-max-length').addEventListener('input', (e) => {
             if (!field.validation) field.validation = {};
             field.validation.maxLength = e.target.value ? parseInt(e.target.value) : undefined;
+        });
+
+        settingsDiv.querySelector('.setting-min-count').addEventListener('input', (e) => {
+            if (!field.validation) field.validation = {};
+            field.validation.minCount = e.target.value ? parseInt(e.target.value) : undefined;
+        });
+
+        settingsDiv.querySelector('.setting-max-count').addEventListener('input', (e) => {
+            if (!field.validation) field.validation = {};
+            field.validation.maxCount = e.target.value ? parseInt(e.target.value) : undefined;
+        });
+        
+        settingsDiv.querySelector('.setting-options').addEventListener('input', (e) => {
+            // Split by newline and filter empty
+            const options = e.target.value.split('\n').map(o => o.trim()).filter(o => o);
+            updateFieldInMasterJson(field.id, 'options', options);
         });
 
         div.appendChild(inputRow);
@@ -1202,6 +1286,30 @@ document.addEventListener('DOMContentLoaded', function() {
             const url = `https://gemini.google.com/app?text=${encodeURIComponent(prompt)}`;
             window.open(url, '_blank');
         });
+    }
+
+    function needsOptions(type) {
+        return ['select', 'multiselect', 'radio', 'checkboxList'].includes(type);
+    }
+
+    function needsCountValidation(type) {
+        return ['multiselect', 'checkboxList'].includes(type);
+    }
+
+    function needsLengthValidation(type) {
+        return ['text', 'textarea'].includes(type);
+    }
+
+    function needsOptions(type) {
+        return ['select', 'multiselect', 'radio', 'checkboxList'].includes(type);
+    }
+
+    function needsCountValidation(type) {
+        return ['multiselect', 'checkboxList'].includes(type);
+    }
+
+    function needsLengthValidation(type) {
+        return ['text', 'textarea'].includes(type);
     }
 
     // Initialize root sortable on load
