@@ -32,26 +32,26 @@
     <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
         <div class="d-flex flex-column p-3">
-            <h5 class="text-white mb-3">Menu</h5>
+            <h5 class="text-white mb-3" data-i18n="nav.menu">Menu</h5>
             <ul class="nav nav-pills flex-column mb-auto">
                 <li class="nav-item">
                     <a href="#" class="nav-link active" aria-current="page">
-                        <i class="fa-solid fa-house me-2"></i>Home
+                        <i class="fa-solid fa-house me-2"></i><span data-i18n="nav.home">Home</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">
-                        <i class="fa-solid fa-file-lines me-2"></i>Forms
+                        <i class="fa-solid fa-file-lines me-2"></i><span data-i18n="nav.forms">Forms</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">
-                        <i class="fa-solid fa-gear me-2"></i>Settings
+                        <i class="fa-solid fa-gear me-2"></i><span data-i18n="nav.settings">Settings</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">
-                        <i class="fa-solid fa-circle-info me-2"></i>About
+                        <i class="fa-solid fa-circle-info me-2"></i><span data-i18n="nav.about">About</span>
                     </a>
                 </li>
             </ul>
@@ -69,7 +69,35 @@
                 <button class="navbar-toggler me-2" id="menuToggle" type="button" aria-label="Toggle menu" aria-expanded="false">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <a class="navbar-brand" href="#">JSON Prompt Architect</a>
+                <a class="navbar-brand" href="#" data-i18n="app.title">JSON Prompt Architect</a>
+
+                <!-- Language Picker -->
+                <div class="dropdown ms-auto">
+                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="languagePickerBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                        EN
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languagePickerBtn">
+                        <li><a class="dropdown-item language-option" href="#" data-lang="en">EN - English</a></li>
+                        <li><a class="dropdown-item language-option" href="#" data-lang="cs">CS - Čeština</a></li>
+                        <li><a class="dropdown-item language-option" href="#" data-lang="sk">SK - Slovenčina</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item language-option" href="#" data-lang="de">DE - Deutsch</a></li>
+                        <li><a class="dropdown-item language-option" href="#" data-lang="es">ES - Español</a></li>
+                        <li><a class="dropdown-item language-option" href="#" data-lang="fr">FR - Français</a></li>
+                        <li><a class="dropdown-item language-option" href="#" data-lang="it">IT - Italiano</a></li>
+                        <li><a class="dropdown-item language-option" href="#" data-lang="pt">PT - Português</a></li>
+                        <li><a class="dropdown-item language-option" href="#" data-lang="pl">PL - Polski</a></li>
+                        <li><a class="dropdown-item language-option" href="#" data-lang="tr">TR - Türkçe</a></li>
+                        <li><a class="dropdown-item language-option" href="#" data-lang="ru">RU - Русский</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item language-option" href="#" data-lang="zh">ZH - 中文</a></li>
+                        <li><a class="dropdown-item language-option" href="#" data-lang="ja">JA - 日本語</a></li>
+                        <li><a class="dropdown-item language-option" href="#" data-lang="ko">KO - 한국어</a></li>
+                        <li><a class="dropdown-item language-option" href="#" data-lang="hi">HI - हिन्दी</a></li>
+                        <li><a class="dropdown-item language-option" href="#" data-lang="ar">AR - العربية</a></li>
+                        <li><a class="dropdown-item language-option" href="#" data-lang="bn">BN - বাংলা</a></li>
+                    </ul>
+                </div>
             </div>
         </nav>
         
@@ -79,17 +107,17 @@
             <ul class="nav nav-tabs" id="modeTabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="edit-tab" data-bs-toggle="tab" data-bs-target="#edit-mode" type="button" role="tab" aria-controls="edit-mode" aria-selected="true">
-                        <i class="fa-solid fa-pen-to-square me-1"></i>EDIT MODE
+                        <i class="fa-solid fa-pen-to-square me-1"></i><span data-i18n="nav.editMode">EDIT MODE</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="use-tab" data-bs-toggle="tab" data-bs-target="#use-mode" type="button" role="tab" aria-controls="use-mode" aria-selected="false">
-                        <i class="fa-solid fa-play me-1"></i>USE MODE
+                        <i class="fa-solid fa-play me-1"></i><span data-i18n="nav.useMode">USE MODE</span>
                     </button>
                 </li>
                 <li class="nav-item ms-auto d-flex gap-2">
                     <button class="btn btn-outline-primary btn-sm mb-1" id="shareBtn" type="button">
-                        <i class="fa-solid fa-share-nodes me-1"></i>Share
+                        <i class="fa-solid fa-share-nodes me-1"></i><span data-i18n="btn.share">Share</span>
                     </button>
                 </li>
             </ul>
@@ -101,10 +129,10 @@
                     
                     <!-- Edit Mode Toolbar -->
                     <div class="d-flex justify-content-end gap-2 py-3 border-bottom">
-                         <button class="btn btn-primary btn-sm" id="addJsonButton" type="button" data-bs-toggle="modal" data-bs-target="#jsonPromptModal">
+                         <button class="btn btn-primary btn-sm" id="addJsonButton" type="button" data-bs-toggle="modal" data-bs-target="#jsonPromptModal" data-i18n="btn.addJson">
                             Add JSON
                         </button>
-                        <button class="btn btn-outline-secondary btn-sm" id="showMasterJsonBtn" type="button" data-bs-toggle="modal" data-bs-target="#masterJsonModal">
+                        <button class="btn btn-outline-secondary btn-sm" id="showMasterJsonBtn" type="button" data-bs-toggle="modal" data-bs-target="#masterJsonModal" data-i18n="btn.showMasterJson">
                             Show Master JSON
                         </button>
                     </div>
@@ -114,17 +142,17 @@
                         <div id="jsonBlocksContainer">
                             <!-- Empty state with add buttons -->
                             <div class="empty-state text-center py-5" id="emptyState">
-                                <p class="text-muted mb-3">Start building your JSON structure</p>
+                                <p class="text-muted mb-3" data-i18n="edit.emptyState">Start building your JSON structure</p>
                             </div>
                         </div>
 
                         <!-- Add buttons (always at the bottom of root level) -->
                         <div class="block-actions d-flex gap-2 mt-3" id="rootBlockActions">
                             <button type="button" class="btn btn-outline-primary btn-sm" id="addKeyValueBtn">
-                                <i class="fa-solid fa-plus me-1"></i>Add Field
+                                <i class="fa-solid fa-plus me-1"></i><span data-i18n="btn.addField">Add Field</span>
                             </button>
                             <button type="button" class="btn btn-outline-secondary btn-sm" id="addSectionBtn">
-                                <i class="fa-solid fa-folder-plus me-1"></i>Add Section
+                                <i class="fa-solid fa-folder-plus me-1"></i><span data-i18n="btn.addSection">Add Section</span>
                             </button>
                         </div>
                     </div>
@@ -139,10 +167,10 @@
                             <div class="col-md-6">
                                 <div class="card">
                                     <div class="card-header">
-                                        <h6 class="mb-0">Fill Values</h6>
+                                        <h6 class="mb-0" data-i18n="use.fillValues">Fill Values</h6>
                                     </div>
                                     <div class="card-body" id="useFormContainer">
-                                        <p class="text-muted">No JSON structure defined. Go to EDIT MODE to create one.</p>
+                                        <p class="text-muted" data-i18n="use.noStructure">No JSON structure defined. Go to EDIT MODE to create one.</p>
                                     </div>
                                 </div>
                             </div>
@@ -150,23 +178,23 @@
                             <div class="col-md-6">
                                 <div class="card">
                                     <div class="card-header d-flex justify-content-between align-items-center">
-                                        <h6 class="mb-0">Output JSON</h6>
+                                        <h6 class="mb-0" data-i18n="use.outputJson">Output JSON</h6>
                                         <div class="d-flex align-items-center gap-3">
                                             <div class="form-check form-switch mb-0">
                                                 <input class="form-check-input" type="checkbox" id="onlyValidJsonToggle" checked>
-                                                <label class="form-check-label small" for="onlyValidJsonToggle">Only valid</label>
+                                                <label class="form-check-label small" for="onlyValidJsonToggle" data-i18n="use.onlyValid">Only valid</label>
                                             </div>
                                             <div class="d-flex gap-2">
                                                 <button class="btn btn-outline-success btn-sm" id="openChatGptBtn" type="button" title="Open in ChatGPT">
-                                                    <i class="fa-solid fa-comment me-1"></i>ChatGPT
+                                                    <i class="fa-solid fa-comment me-1"></i><span data-i18n="btn.chatgpt">ChatGPT</span>
                                                 </button>
-                                                <span title="Gemini does not support opening with a prompt">
+                                                <span data-i18n-title="tooltip.geminiNoSupport" title="Gemini does not support opening with a prompt">
                                                     <button class="btn btn-outline-info btn-sm disabled" id="openGeminiBtn" type="button" disabled>
-                                                        <i class="fa-solid fa-gem me-1"></i><s>Gemini</s>
+                                                        <i class="fa-solid fa-gem me-1"></i><s data-i18n="btn.gemini">Gemini</s>
                                                     </button>
                                                 </span>
                                                 <button type="button" class="btn btn-outline-primary btn-sm" id="copyJsonBtn">
-                                                    <i class="fa-solid fa-copy me-1"></i>Copy
+                                                    <i class="fa-solid fa-copy me-1"></i><span data-i18n="btn.copy">Copy</span>
                                                 </button>
                                             </div>
                                         </div>
@@ -187,22 +215,22 @@
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="jsonPromptModalLabel">Add JSON Prompt</h5>
+                    <h5 class="modal-title" id="jsonPromptModalLabel" data-i18n="modal.addJson.title">Add JSON Prompt</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label">JSON prompt</label>
+                        <label class="form-label" data-i18n="modal.addJson.label">JSON prompt</label>
                         <div id="jsonPromptEditor"></div>
                         <div id="jsonPromptError" class="text-danger small mt-2 d-none"></div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <span id="formatJsonPromptWrapper" class="me-auto" title="Enter valid JSON to enable formatting">
-                        <button type="button" class="btn btn-outline-info" id="formatJsonPrompt" disabled>Format</button>
+                    <span id="formatJsonPromptWrapper" class="me-auto" data-i18n-title="modal.addJson.formatHint.valid" title="Enter valid JSON to enable formatting">
+                        <button type="button" class="btn btn-outline-info" id="formatJsonPrompt" disabled data-i18n="btn.format">Format</button>
                     </span>
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="saveJsonPrompt" disabled>Save</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-i18n="btn.cancel">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveJsonPrompt" disabled data-i18n="btn.save">Save</button>
                 </div>
             </div>
         </div>
@@ -213,15 +241,15 @@
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="masterJsonModalLabel">Master JSON (Schema)</h5>
+                    <h5 class="modal-title" id="masterJsonModalLabel" data-i18n="modal.masterJson.title">Master JSON (Schema)</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div id="masterJsonPreview"></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-primary" id="copyMasterJsonBtn"><i class="fa-solid fa-copy me-1"></i>Copy</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fa-solid fa-xmark me-1"></i>Close</button>
+                    <button type="button" class="btn btn-outline-primary" id="copyMasterJsonBtn"><i class="fa-solid fa-copy me-1"></i><span data-i18n="btn.copy">Copy</span></button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fa-solid fa-xmark me-1"></i><span data-i18n="btn.close">Close</span></button>
                 </div>
             </div>
         </div>
@@ -241,7 +269,7 @@
                         </a>
                     </p>
                     <p class="text-muted mb-0">
-                        <small>License: <a href="https://github.com/polyweb-cz/json-prompt-architect/blob/main/LICENSE" class="text-muted" target="_blank">GNU GPL v3</a></small>
+                        <small><span data-i18n="footer.license">License:</span> <a href="https://github.com/polyweb-cz/json-prompt-architect/blob/main/LICENSE" class="text-muted" target="_blank">GNU GPL v3</a></small>
                     </p>
                 </div>
             </div>
@@ -263,7 +291,10 @@
 
     <!-- SortableJS for drag & drop -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    
+
+    <!-- i18n Module -->
+    <script src="js/i18n.js"></script>
+
     <!-- Custom JavaScript -->
     <script src="js/app.js"></script>
 </body>

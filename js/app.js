@@ -1,6 +1,15 @@
 // JSON Prompt Architect - Main Application
 document.addEventListener('DOMContentLoaded', function() {
 
+    // ===== I18N HELPER =====
+    // Translation helper - uses window.i18n.t() if available, otherwise returns key
+    function t(key, ...args) {
+        if (window.i18n && typeof window.i18n.t === 'function') {
+            return window.i18n.t(key, ...args);
+        }
+        return key;
+    }
+
     // ===== MASTER JSON STATE =====
     let masterJson = { fields: [] };
 
@@ -38,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const validation = validateAllUseFields();
         
         if (showOnlyValid && !validation.isValid) {
-            const errorMsg = "Validation Errors:\n\n" + validation.errors.join('\n');
+            const errorMsg = t('validation.errors') + "\n\n" + validation.errors.join('\n');
             if (outputJsonEditor) {
                 outputJsonEditor.setValue(errorMsg);
             }
@@ -99,20 +108,20 @@ document.addEventListener('DOMContentLoaded', function() {
     function checkFieldValidity(field, value) {
         // Length validation for text/textarea
         if (field.validation?.minLength && typeof value === 'string' && value.length < field.validation.minLength) {
-            return `"${field.key}": Minimum length is ${field.validation.minLength} characters (current: ${value.length}).`;
+            return `"${field.key}": ${t('validation.minLength', field.validation.minLength, value.length)}`;
         }
         if (field.validation?.maxLength && typeof value === 'string' && value.length > field.validation.maxLength) {
-            return `"${field.key}": Maximum length is ${field.validation.maxLength} characters (current: ${value.length}).`;
+            return `"${field.key}": ${t('validation.maxLength', field.validation.maxLength, value.length)}`;
         }
 
         // Count validation for multiselect/checkboxList
         if (Array.isArray(value)) {
             const count = value.length;
             if (field.validation?.minCount !== undefined && count < field.validation.minCount) {
-                return `"${field.key}": Minimum ${field.validation.minCount} option(s) required (current: ${count}).`;
+                return `"${field.key}": ${t('validation.minCount', field.validation.minCount, count)}`;
             }
             if (field.validation?.maxCount !== undefined && count > field.validation.maxCount) {
-                return `"${field.key}": Maximum ${field.validation.maxCount} option(s) allowed (current: ${count}).`;
+                return `"${field.key}": ${t('validation.maxCount', field.validation.maxCount, count)}`;
             }
         }
 
@@ -410,7 +419,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderOptionsEditor(field, container) {
         // Ensure options array exists
         if (!field.options || field.options.length === 0) {
-            field.options = ['Option 1'];
+            field.options = [t('default.option', 1)];
             updateFieldInMasterJson(field.id, 'options', field.options);
         }
 
@@ -445,12 +454,12 @@ document.addEventListener('DOMContentLoaded', function() {
                        ${isSingleDefault ? `name="${radioName}"` : ''}
                        ${isChecked ? 'checked' : ''}
                        value="${index}"
-                       title="Set as default">
+                       title="${t('field.label.setAsDefault')}">
                 <input type="text" class="form-control form-control-sm option-value flex-grow-1"
-                       value="${escapeHtml(opt)}" placeholder="Option value">
-                <span class="option-drag-handle px-1" style="cursor: grab; opacity: 0.5;" title="Drag to reorder"><i class="fa-solid fa-grip-vertical"></i></span>
+                       value="${escapeHtml(opt)}" placeholder="${t('field.placeholder.optionValue')}">
+                <span class="option-drag-handle px-1" style="cursor: grab; opacity: 0.5;" title="${t('edit.dragToReorder')}"><i class="fa-solid fa-grip-vertical"></i></span>
                 <button type="button" class="btn btn-sm btn-option-delete text-danger border-0 p-0 ${canDelete ? '' : 'invisible'}"
-                        title="Remove option"><i class="fa-solid fa-xmark"></i></button>
+                        title="${t('field.label.removeOption')}"><i class="fa-solid fa-xmark"></i></button>
             `;
 
             optionsList.appendChild(row);
@@ -462,7 +471,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.className = 'btn btn-sm btn-link text-decoration-none p-0 mt-1';
-        addBtn.innerHTML = '<i class="fa-solid fa-plus me-1"></i>Add option';
+        addBtn.innerHTML = `<i class="fa-solid fa-plus me-1"></i>${t('btn.addOption')}`;
         container.appendChild(addBtn);
 
         // Initialize SortableJS for drag & drop
@@ -484,7 +493,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Event: Add new option
         addBtn.addEventListener('click', () => {
-            const newOption = `Option ${field.options.length + 1}`;
+            const newOption = t('default.option', field.options.length + 1);
             field.options.push(newOption);
             updateFieldInMasterJson(field.id, 'options', field.options);
             renderOptionsEditor(field, container);
@@ -589,21 +598,21 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="row g-2">
                 <!-- Length Validation -->
                 <div class="col-md-6 length-validation">
-                    <label class="form-label small mb-1">Min Length</label>
+                    <label class="form-label small mb-1">${t('field.label.minLength')}</label>
                     <input type="number" class="form-control form-control-sm setting-min-length" value="${field.validation?.minLength ?? ''}">
                 </div>
                 <div class="col-md-6 length-validation">
-                    <label class="form-label small mb-1">Max Length</label>
+                    <label class="form-label small mb-1">${t('field.label.maxLength')}</label>
                     <input type="number" class="form-control form-control-sm setting-max-length" value="${field.validation?.maxLength ?? ''}">
                 </div>
 
                 <!-- Count Validation -->
                 <div class="col-md-6 count-validation d-none">
-                    <label class="form-label small mb-1">Min Count</label>
+                    <label class="form-label small mb-1">${t('field.label.minCount')}</label>
                     <input type="number" class="form-control form-control-sm setting-min-count" value="${field.validation?.minCount ?? ''}">
                 </div>
                 <div class="col-md-6 count-validation d-none">
-                    <label class="form-label small mb-1">Max Count</label>
+                    <label class="form-label small mb-1">${t('field.label.maxCount')}</label>
                     <input type="number" class="form-control form-control-sm setting-max-count" value="${field.validation?.maxCount ?? ''}">
                 </div>
             </div>
@@ -635,38 +644,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 // For select/multiselect/radio/checkboxList - will be populated by renderOptionsEditor()
                 valueInputHtml = '<div class="options-editor-container"></div>';
             } else if (field.type === 'textarea') {
-                valueInputHtml = `<textarea class="form-control form-control-sm block-value" placeholder="Default value" rows="2" style="min-height: 80px;">${escapeHtml(field.defaultValue || '')}</textarea>`;
+                valueInputHtml = `<textarea class="form-control form-control-sm block-value" placeholder="${t('field.placeholder.defaultValue')}" rows="2" style="min-height: 80px;">${escapeHtml(field.defaultValue || '')}</textarea>`;
             } else if (field.type === 'checkbox') {
                 // Single checkbox - default value is true/false
                 const isChecked = field.defaultValue === true || field.defaultValue === 'true';
                 valueInputHtml = `
                     <div class="form-check pt-1">
                         <input type="checkbox" class="form-check-input block-value-checkbox" ${isChecked ? 'checked' : ''}>
-                        <label class="form-check-label small text-muted">Default: checked</label>
+                        <label class="form-check-label small text-muted">${t('field.label.defaultChecked')}</label>
                     </div>`;
             } else {
-                valueInputHtml = `<input type="text" class="form-control form-control-sm block-value" placeholder="Default value" value="${escapeHtml(field.defaultValue || '')}">`;
+                valueInputHtml = `<input type="text" class="form-control form-control-sm block-value" placeholder="${t('field.placeholder.defaultValue')}" value="${escapeHtml(field.defaultValue || '')}">`;
             }
 
             inputRow.innerHTML = `
-                <span class="drag-handle pt-1" title="Drag to reorder" style="cursor: grab; opacity: 0.5;"><i class="fa-solid fa-grip-lines"></i></span>
-                <input type="text" class="form-control form-control-sm block-key" style="flex: 0 0 200px; font-weight: 500;" placeholder="Key" value="${escapeHtml(field.key || '')}">
+                <span class="drag-handle pt-1" title="${t('edit.dragToReorder')}" style="cursor: grab; opacity: 0.5;"><i class="fa-solid fa-grip-lines"></i></span>
+                <input type="text" class="form-control form-control-sm block-key" style="flex: 0 0 200px; font-weight: 500;" placeholder="${t('field.placeholder.key')}" value="${escapeHtml(field.key || '')}">
                 <select class="form-select form-select-sm block-type" style="flex: 0 0 120px;">
-                    <option value="text" ${field.type === 'text' ? 'selected' : ''}>Short Text</option>
-                    <option value="textarea" ${field.type === 'textarea' ? 'selected' : ''}>Long Text</option>
-                    <option value="select" ${field.type === 'select' ? 'selected' : ''}>Select</option>
-                    <option value="multiselect" ${field.type === 'multiselect' ? 'selected' : ''}>Multi Select</option>
-                    <option value="checkbox" ${field.type === 'checkbox' ? 'selected' : ''}>Checkbox</option>
-                    <option value="radio" ${field.type === 'radio' ? 'selected' : ''}>Radio Group</option>
-                    <option value="checkboxList" ${field.type === 'checkboxList' ? 'selected' : ''}>Checkbox List</option>
+                    <option value="text" ${field.type === 'text' ? 'selected' : ''}>${t('field.type.text')}</option>
+                    <option value="textarea" ${field.type === 'textarea' ? 'selected' : ''}>${t('field.type.textarea')}</option>
+                    <option value="select" ${field.type === 'select' ? 'selected' : ''}>${t('field.type.select')}</option>
+                    <option value="multiselect" ${field.type === 'multiselect' ? 'selected' : ''}>${t('field.type.multiselect')}</option>
+                    <option value="checkbox" ${field.type === 'checkbox' ? 'selected' : ''}>${t('field.type.checkbox')}</option>
+                    <option value="radio" ${field.type === 'radio' ? 'selected' : ''}>${t('field.type.radio')}</option>
+                    <option value="checkboxList" ${field.type === 'checkboxList' ? 'selected' : ''}>${t('field.type.checkboxList')}</option>
                 </select>
                 <div class="flex-grow-1 value-container">
                     ${valueInputHtml}
                 </div>
-                <button type="button" class="btn btn-sm btn-outline-secondary btn-settings ${!needsLengthValidation(field.type) && !needsCountValidation(field.type) ? 'disabled' : ''}" title="Settings" ${!needsLengthValidation(field.type) && !needsCountValidation(field.type) ? 'disabled' : ''}>
+                <button type="button" class="btn btn-sm btn-outline-secondary btn-settings ${!needsLengthValidation(field.type) && !needsCountValidation(field.type) ? 'disabled' : ''}" title="${t('edit.settings')}" ${!needsLengthValidation(field.type) && !needsCountValidation(field.type) ? 'disabled' : ''}>
                     <i class="fa-solid fa-gear"></i>
                 </button>
-                <button type="button" class="btn btn-delete text-danger bg-transparent border-0 p-1" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
+                <button type="button" class="btn btn-delete text-danger bg-transparent border-0 p-1" title="${t('btn.delete')}"><i class="fa-solid fa-trash-can"></i></button>
             `;
 
             // Bind events for main row
@@ -803,20 +812,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
         div.innerHTML = `
             <div class="section-header d-flex align-items-center">
-                <span class="drag-handle me-2" title="Drag to reorder"><i class="fa-solid fa-grip-lines"></i></span>
-                <input type="text" class="form-control form-control-sm section-name me-2" placeholder="Section name" value="${escapeHtml(field.key || '')}">
-                
-                <div class="form-check form-switch me-2" title="Collapse by default">
+                <span class="drag-handle me-2" title="${t('edit.dragToReorder')}"><i class="fa-solid fa-grip-lines"></i></span>
+                <input type="text" class="form-control form-control-sm section-name me-2" placeholder="${t('field.placeholder.sectionName')}" value="${escapeHtml(field.key || '')}">
+
+                <div class="form-check form-switch me-2">
                     <input class="form-check-input section-collapsed" type="checkbox" id="collapsed_${field.id}" ${field.collapsed ? 'checked' : ''}>
-                    <label class="form-check-label small text-muted" for="collapsed_${field.id}"><small>Collapsed</small></label>
+                    <label class="form-check-label small text-muted" for="collapsed_${field.id}"><small>${t('edit.collapsed')}</small></label>
                 </div>
-                
-                <button type="button" class="btn-close ms-auto" aria-label="Delete section"></button>
+
+                <button type="button" class="btn-close ms-auto" aria-label="${t('edit.deleteSection')}" title="${t('edit.deleteSection')}"></button>
             </div>
             <div class="section-children"></div>
             <div class="block-actions d-flex gap-2 mt-2">
-                <button type="button" class="btn btn-outline-primary btn-sm add-child-keyvalue">+ Add Key/Value</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm add-child-section">+ Add Section</button>
+                <button type="button" class="btn btn-outline-primary btn-sm add-child-keyvalue">${t('btn.addKeyValue')}</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm add-child-section">${t('btn.addChildSection')}</button>
             </div>
         `;
 
@@ -1016,10 +1025,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (copyMasterJsonBtn) {
         copyMasterJsonBtn.addEventListener('click', () => {
             const jsonStr = JSON.stringify(masterJson, null, 2);
+            const originalHtml = copyMasterJsonBtn.innerHTML;
             navigator.clipboard.writeText(jsonStr).then(() => {
-                copyMasterJsonBtn.textContent = 'Copied!';
+                copyMasterJsonBtn.innerHTML = `<i class="fa-solid fa-check me-1"></i>${t('action.copied')}`;
                 setTimeout(() => {
-                    copyMasterJsonBtn.textContent = 'Copy';
+                    copyMasterJsonBtn.innerHTML = originalHtml;
                 }, 2000);
             });
         });
@@ -1030,7 +1040,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!useFormContainer) return;
 
         if (masterJson.fields.length === 0) {
-            useFormContainer.innerHTML = '<p class="text-muted">No JSON structure defined. Go to EDIT MODE to create one.</p>';
+            useFormContainer.innerHTML = `<p class="text-muted">${t('use.noStructure')}</p>`;
             if (outputJsonEditor) {
                 outputJsonEditor.setValue('{}');
             }
@@ -1048,18 +1058,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 const section = document.createElement('div');
                 section.className = 'card mb-3';
                 const isCollapsed = field.collapsed === true;
-                
+
                 section.innerHTML = `
-                    <div class="card-header py-2 d-flex align-items-center user-select-none" 
-                         data-bs-toggle="collapse" 
-                         data-bs-target="#collapse_${field.id}" 
-                         aria-expanded="${!isCollapsed}" 
-                         aria-controls="collapse_${field.id}" 
+                    <div class="card-header py-2 d-flex align-items-center user-select-none"
+                         data-bs-toggle="collapse"
+                         data-bs-target="#collapse_${field.id}"
+                         aria-expanded="${!isCollapsed}"
+                         aria-controls="collapse_${field.id}"
                          style="cursor: pointer;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-down me-2 transition-transform" viewBox="0 0 16 16" style="transition: transform 0.2s;">
                             <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
                         </svg>
-                        <strong>${escapeHtml(field.key || 'Unnamed Section')}</strong>
+                        <strong>${escapeHtml(field.key || t('use.unnamedSection'))}</strong>
                     </div>
                     <div id="collapse_${field.id}" class="collapse ${isCollapsed ? '' : 'show'}">
                         <div class="card-body py-2"></div>
@@ -1080,24 +1090,24 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 const formGroup = document.createElement('div');
                 formGroup.className = 'row mb-3 align-items-start';
-                
+
                 const label = document.createElement('label');
                 label.className = 'col-md-3 col-form-label col-form-label-sm';
-                label.textContent = field.key || 'Unnamed';
-                
+                label.textContent = field.key || t('use.unnamed');
+
                 const inputCol = document.createElement('div');
                 inputCol.className = 'col-md-9 position-relative';
-                
+
                 let inputHtml = '';
                 const options = field.options || [];
-                
+
                 switch(field.type) {
                     case 'textarea':
                         inputHtml = `<textarea class="form-control form-control-sm use-field" data-id="${field.id}" rows="3">${escapeHtml(field.defaultValue || '')}</textarea>`;
                         break;
                     case 'select':
                         inputHtml = `<select class="form-select form-select-sm use-field" data-id="${field.id}">
-                            <option value="">-- Select option --</option>
+                            <option value="">${t('use.selectOption')}</option>
                             ${options.map(opt => `<option value="${escapeHtml(opt)}" ${field.defaultValue === opt ? 'selected' : ''}>${escapeHtml(opt)}</option>`).join('')}
                         </select>`;
                         break;
@@ -1110,7 +1120,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         inputHtml = `
                             <div class="form-check pt-1">
                                 <input class="form-check-input use-field" type="checkbox" data-id="${field.id}" id="check_${field.id}" ${field.defaultValue === 'true' || field.defaultValue === true ? 'checked' : ''}>
-                                <label class="form-check-label small" for="check_${field.id}">Enabled</label>
+                                <label class="form-check-label small" for="check_${field.id}">${t('use.enabled')}</label>
                             </div>`;
                         break;
                     case 'radio':
@@ -1147,8 +1157,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     const el = inputCol.querySelector('.choices-init');
                     new Choices(el, {
                         removeItemButton: true,
-                        placeholderValue: 'Select options',
-                        searchPlaceholderValue: 'Search...'
+                        placeholderValue: t('use.selectOptions'),
+                        searchPlaceholderValue: t('use.search')
                     });
                     el.addEventListener('change', () => {
                         updateOutputJson();
@@ -1179,7 +1189,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const validation = validateAllUseFields();
         
         if (showOnlyValid && !validation.isValid) {
-            const errorMsg = "Validation Errors:\n\n" + validation.errors.join('\n');
+            const errorMsg = t('validation.errors') + "\n\n" + validation.errors.join('\n');
             if (outputJsonEditor) {
                 outputJsonEditor.setValue(errorMsg);
             }
@@ -1216,10 +1226,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (copyJsonBtn && outputJsonEditor) {
         copyJsonBtn.addEventListener('click', () => {
             const jsonStr = outputJsonEditor.getValue();
+            const originalHtml = copyJsonBtn.innerHTML;
             navigator.clipboard.writeText(jsonStr).then(() => {
-                copyJsonBtn.textContent = 'Copied!';
+                copyJsonBtn.innerHTML = `<i class="fa-solid fa-check me-1"></i>${t('action.copied')}`;
                 setTimeout(() => {
-                    copyJsonBtn.textContent = 'Copy JSON';
+                    copyJsonBtn.innerHTML = originalHtml;
                 }, 2000);
             });
         });
@@ -1481,12 +1492,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const jsonStr = JSON.stringify(masterJson);
             const base64 = btoa(jsonStr);
             setUrlParams(base64);
-            
+
+            const originalHtml = shareBtn.innerHTML;
             navigator.clipboard.writeText(window.location.href).then(() => {
-                const originalText = shareBtn.textContent;
-                shareBtn.textContent = 'Link Copied!';
+                shareBtn.innerHTML = `<i class="fa-solid fa-check me-1"></i>${t('action.linkCopied')}`;
                 setTimeout(() => {
-                    shareBtn.textContent = originalText;
+                    shareBtn.innerHTML = originalHtml;
                 }, 2000);
             });
         });
@@ -1517,7 +1528,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize root sortable on load
     initRootSortable();
-    
+
     // Load state from URL if present
     loadFromUrl();
+
+    // ===== I18N INITIALIZATION =====
+    // Initialize i18n if available
+    if (window.i18n && typeof window.i18n.initI18n === 'function') {
+        window.i18n.initI18n().then(() => {
+            // Re-render after language is loaded
+            if (masterJson.fields.length > 0) {
+                renderEditMode();
+            }
+        });
+    }
+
+    // Listen for language changes to re-render dynamic content
+    document.addEventListener('languageChanged', () => {
+        renderEditMode();
+        // If Use mode is active, re-render it too
+        const useTabPane = document.getElementById('use-mode');
+        if (useTabPane && useTabPane.classList.contains('show')) {
+            renderUseMode();
+        }
+    });
 });
