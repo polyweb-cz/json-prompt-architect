@@ -1247,25 +1247,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ===== SIDEBAR TOGGLE =====
-    // Sidebar toggle functionality
-    const menuToggle = document.getElementById('menuToggle');
-    const sidebar = document.getElementById('sidebar');
-    const sidebarOverlay = document.getElementById('sidebarOverlay');
-    
-    // Check if all required elements exist before setting up sidebar
-    if (menuToggle && sidebar && sidebarOverlay) {
-        function toggleSidebar() {
-            const isExpanded = sidebar.classList.toggle('show');
-            sidebarOverlay.classList.toggle('show');
-            menuToggle.setAttribute('aria-expanded', isExpanded);
-        }
-        
-        menuToggle.addEventListener('click', toggleSidebar);
-        sidebarOverlay.addEventListener('click', toggleSidebar);
-    } else {
-        console.error('Required elements for sidebar not found');
-    }
 
     const jsonPromptModal = document.getElementById('jsonPromptModal');
     const jsonPromptEditorEl = document.getElementById('jsonPromptEditor');

@@ -29,46 +29,11 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- Sidebar -->
-    <div class="sidebar" id="sidebar">
-        <div class="d-flex flex-column p-3">
-            <h5 class="text-white mb-3" data-i18n="nav.menu">Menu</h5>
-            <ul class="nav nav-pills flex-column mb-auto">
-                <li class="nav-item">
-                    <a href="#" class="nav-link active" aria-current="page">
-                        <i class="fa-solid fa-house me-2"></i><span data-i18n="nav.home">Home</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="fa-solid fa-file-lines me-2"></i><span data-i18n="nav.forms">Forms</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="fa-solid fa-gear me-2"></i><span data-i18n="nav.settings">Settings</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="fa-solid fa-circle-info me-2"></i><span data-i18n="nav.about">About</span>
-                    </a>
-                </li>
-            </ul>
-        </div>
-    </div>
-    
-    <!-- Sidebar overlay -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    
     <!-- Main content -->
     <main>
         <!-- Header -->
-        <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
+        <nav class="navbar navbar-light bg-light border-bottom">
             <div class="container">
-                <button class="navbar-toggler me-2" id="menuToggle" type="button" aria-label="Toggle menu" aria-expanded="false">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
                 <a class="navbar-brand" href="#" data-i18n="app.title">JSON Prompt Architect</a>
 
                 <!-- Language Picker -->
@@ -177,26 +142,26 @@
                             <!-- JSON Preview -->
                             <div class="col-md-6">
                                 <div class="card">
-                                    <div class="card-header d-flex justify-content-between align-items-center">
-                                        <h6 class="mb-0" data-i18n="use.outputJson">Output JSON</h6>
-                                        <div class="d-flex align-items-center gap-3">
+                                    <div class="card-header">
+                                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                            <h6 class="mb-0" data-i18n="use.outputJson">Output JSON</h6>
                                             <div class="form-check form-switch mb-0">
                                                 <input class="form-check-input" type="checkbox" id="onlyValidJsonToggle" checked>
                                                 <label class="form-check-label small" for="onlyValidJsonToggle" data-i18n="use.onlyValid">Only valid</label>
                                             </div>
-                                            <div class="d-flex gap-2">
-                                                <button class="btn btn-outline-success btn-sm" id="openChatGptBtn" type="button" title="Open in ChatGPT">
-                                                    <i class="fa-solid fa-comment me-1"></i><span data-i18n="btn.chatgpt">ChatGPT</span>
+                                        </div>
+                                        <div class="d-flex gap-2 mt-2 flex-wrap">
+                                            <button class="btn btn-outline-success btn-sm" id="openChatGptBtn" type="button" title="Open in ChatGPT">
+                                                <i class="fa-solid fa-comment me-1"></i><span data-i18n="btn.chatgpt">ChatGPT</span>
+                                            </button>
+                                            <span data-i18n-title="tooltip.geminiNoSupport" title="Gemini does not support opening with a prompt">
+                                                <button class="btn btn-outline-info btn-sm disabled" id="openGeminiBtn" type="button" disabled>
+                                                    <i class="fa-solid fa-gem me-1"></i><s data-i18n="btn.gemini">Gemini</s>
                                                 </button>
-                                                <span data-i18n-title="tooltip.geminiNoSupport" title="Gemini does not support opening with a prompt">
-                                                    <button class="btn btn-outline-info btn-sm disabled" id="openGeminiBtn" type="button" disabled>
-                                                        <i class="fa-solid fa-gem me-1"></i><s data-i18n="btn.gemini">Gemini</s>
-                                                    </button>
-                                                </span>
-                                                <button type="button" class="btn btn-outline-primary btn-sm" id="copyJsonBtn">
-                                                    <i class="fa-solid fa-copy me-1"></i><span data-i18n="btn.copy">Copy</span>
-                                                </button>
-                                            </div>
+                                            </span>
+                                            <button type="button" class="btn btn-outline-primary btn-sm" id="copyJsonBtn">
+                                                <i class="fa-solid fa-copy me-1"></i><span data-i18n="btn.copy">Copy</span>
+                                            </button>
                                         </div>
                                     </div>
                                     <div class="card-body">
