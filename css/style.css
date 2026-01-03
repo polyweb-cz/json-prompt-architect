@@ -206,43 +206,77 @@ footer {
 
 /* ===== RESPONSIVE STYLES ===== */
 @media (max-width: 767.98px) {
-    /* Edit mode - stack fields vertically */
+    /* Prevent horizontal overflow */
+    body {
+        overflow-x: hidden;
+    }
+
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    /* Edit mode - inputRow inside json-block */
     .json-block {
-        flex-direction: column;
-        align-items: stretch;
+        position: relative;
     }
 
-    .json-block .block-key,
+    .json-block > div:first-child {
+        flex-wrap: wrap !important;
+        padding-top: 1.5rem;
+    }
+
+    /* Override inline styles */
+    .json-block .block-key {
+        flex: 1 1 calc(100% - 130px) !important;
+        min-width: 0 !important;
+        order: 1;
+    }
+
     .json-block .block-type {
-        flex: none;
-        width: 100%;
+        flex: 0 0 120px !important;
+        order: 2;
     }
 
+    .json-block .value-container {
+        flex: 1 1 100% !important;
+        order: 5;
+        margin-top: 0.5rem;
+    }
+
+    /* Action buttons - top row */
     .json-block .drag-handle {
         position: absolute;
-        top: 0.5rem;
-        right: 2.5rem;
-    }
-
-    .json-block .btn-delete {
-        position: absolute;
-        top: 0.25rem;
-        right: 0.25rem;
+        top: 0.3rem;
+        left: 0.5rem;
+        order: 0;
     }
 
     .json-block .btn-settings {
         position: absolute;
-        top: 0.25rem;
-        right: 2rem;
+        top: 0.2rem;
+        right: 2.2rem;
     }
 
-    .json-block-wrapper {
-        position: relative;
+    .json-block .btn-delete {
+        position: absolute;
+        top: 0.2rem;
+        right: 0.3rem;
     }
 
-    .json-block > .d-flex {
-        flex-direction: column;
-        gap: 0.5rem;
+    /* Section header on mobile */
+    .json-section .section-header {
+        flex-wrap: wrap;
+        padding-top: 0.25rem;
+    }
+
+    .json-section .section-name {
+        flex: 1 1 calc(100% - 2rem);
+        margin-bottom: 0.25rem;
+    }
+
+    .json-section .form-check {
+        font-size: 0.75rem;
     }
 
     /* Section children - reduce padding */
@@ -250,10 +284,14 @@ footer {
         padding-left: 0.5rem;
     }
 
-    /* Tab buttons - smaller on mobile */
+    /* Tab buttons - icons only on mobile */
     #modeTabs .nav-link {
-        font-size: 0.875rem;
-        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+        padding: 0.4rem 0.6rem;
+    }
+
+    #modeTabs .nav-link span {
+        display: none;
     }
 
     /* Share button - icon only on mobile */
@@ -261,11 +299,7 @@ footer {
         display: none;
     }
 
-    /* Use mode - stack columns */
-    .use-mode-container .row {
-        flex-direction: column;
-    }
-
+    /* Use mode */
     .use-mode-container .col-md-6 {
         margin-bottom: 1rem;
     }
@@ -274,5 +308,20 @@ footer {
     #jsonOutputPreview .CodeMirror {
         height: 250px;
         min-height: 200px;
+    }
+
+    /* Output JSON header - compact */
+    .card-header .d-flex.gap-2 {
+        gap: 0.25rem !important;
+    }
+
+    .card-header .btn-sm {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.7rem;
+    }
+
+    /* Hide button text on small screens */
+    .card-header .btn-sm span {
+        display: none;
     }
 }
