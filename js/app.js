@@ -212,31 +212,45 @@ document.addEventListener('DOMContentLoaded', function() {
                     children: convertToMasterJson(value, parentPath + key + '.')
                 });
             } else {
-                // Primitive value or array - create text field
+                // Primitive value or array - create field
                 let defaultValue = value;
+                let type = 'text';
+                let validation = { minLength: 0, maxLength: 64 };
+                let options = [];
+
                 if (Array.isArray(value)) {
-                    defaultValue = JSON.stringify(value);
+                    const isPrimitiveArray = value.every(item => item === null || (typeof item !== 'object' && typeof item !== 'function'));
+                    if (isPrimitiveArray) {
+                        type = 'multiselect';
+                        options = value.map(item => (typeof item === 'string' ? item : String(item)));
+                        defaultValue = [...options];
+                        validation = {};
+                    } else {
+                        defaultValue = JSON.stringify(value);
+                    }
                 } else if (typeof value !== 'string') {
                     defaultValue = String(value);
                 }
-                
-                // Determine initial type and validation
-                let type = 'text';
-                let validation = { minLength: 0, maxLength: 64 };
-                
+
                 // Heuristic: If string is long or has newlines, use textarea
                 if (typeof value === 'string' && (value.length > 64 || value.includes('\n'))) {
                     type = 'textarea';
                     validation = { minLength: 0, maxLength: 255 };
                 }
 
-                fields.push({
+                const field = {
                     id: id,
                     type: type,
                     key: key,
                     defaultValue: defaultValue,
                     validation: validation
-                });
+                };
+
+                if (options.length > 0) {
+                    field.options = options;
+                }
+
+                fields.push(field);
             }
         }
 
@@ -1113,7 +1127,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         break;
                     case 'multiselect':
                         inputHtml = `<select class="form-select form-select-sm use-field choices-init" data-id="${field.id}" multiple>
-                            ${options.map(opt => `<option value="${escapeHtml(opt)}">${escapeHtml(opt)}</option>`).join('')}
+                            ${options.map(opt => {
+                                const isSelected = Array.isArray(field.defaultValue) && field.defaultValue.includes(opt);
+                                return `<option value="${escapeHtml(opt)}" ${isSelected ? 'selected' : ''}>${escapeHtml(opt)}</option>`;
+                            }).join('')}
                         </select>`;
                         break;
                     case 'checkbox':
